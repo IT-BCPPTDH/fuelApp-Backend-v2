@@ -1,0 +1,26 @@
+{
+  "name": "y",
+  "version": "1.0.0",
+  "description": "backend fuelapp version2",
+  "main": "index.js",
+  "scripts": {
+    "seed:run": "knex seed:run",
+    "migrate:latest": "knex migrate:latest",
+    "start": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "septian@think-match.co",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "knex": "^3.1.0",
+    "node-cron": "^3.0.3",
+    "nodemon": "^3.1.4",
+    "pg": "^8.11.5",
+    "pino": "^9.3.1",
+    "pino-pretty": "^11.2.1",
+    "pino-rotating-file-stream": "^0.0.2",
+    "redis": "^4.6.15",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.43.0"
+  }
+}
