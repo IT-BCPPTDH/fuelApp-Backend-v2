@@ -8,7 +8,7 @@ const postFormLkf = async (data) => {
         const params = [date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding, flow_meter_start, dt, fuelman_id]
         let result = await db.query(QUERY_STRING.postFromLKF, params)
         if(result.rowCount>0){
-            return true;
+            return result.rows[0];
         }else{
             return false
         }

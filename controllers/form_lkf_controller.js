@@ -7,11 +7,12 @@ const { closeFormLkf } = require("../query-service/form_lkf/updateData");
 
 async function operatorPostLkf(data) {
     try{
-        let result = postFormLkf(data)
+        let result = await postFormLkf(data)
         if(result){
             return {
                 status: HTTP_STATUS.CREATED,
                 message: 'Data Created',
+                data: result
             };
         }else{
             return {
@@ -30,7 +31,6 @@ async function operatorPostLkf(data) {
 
 async function operatorCloseLkf(data) {
     try{
-        console.log(data)
         let result = await closeFormLkf(data)
         if(result){
             return {
