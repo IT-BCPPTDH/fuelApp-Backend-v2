@@ -1,12 +1,16 @@
 const db = require('../../database/helper');
+const { base64ToImageSign } = require('../../helpers/base64toImage');
+const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
 const closeFormLkf = async (data) => {
     try {
         const dt = new Date()
-        const { hm_end, fuelman_id, closing_dip, closing_sonding, flow_meter_end,note,signature,no_lkf } = data
+        const { hm_end, fuelman_id, closing_dip, closing_sonding, flow_meter_end,note,signature,lkf_id } = data
 
-        const params = [hm_end,closing_dip,closing_sonding,flow_meter_end,fuelman_id,dt,note,signature,no_lkf]
+        let sign = await base64ToImageSign(signature)
+
+        const params = [hm_end,closing_dip,closing_sonding,flow_meter_end,fuelman_id,dt,note,sign,lkf_id]
 
         let result = await db.query(QUERY_STRING.closeFromLKF, params)
         
@@ -16,6 +20,7 @@ const closeFormLkf = async (data) => {
             return false
         }
     } catch (error) {
+        logger.error(error)
         console.error('Error during update:', error);
         return false;
     }

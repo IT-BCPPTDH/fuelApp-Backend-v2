@@ -69,7 +69,7 @@ async function getLastLkf(station) {
                     closing_dip:0,
                     closing_sonding:0,
                     flow_meter_end:0,
-                    hm_end
+                    hm_end:0
                 }
             };
         }

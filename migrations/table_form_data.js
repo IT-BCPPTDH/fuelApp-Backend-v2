@@ -5,11 +5,14 @@
 exports.up = function(knex) {
     return knex.schema.createTable('form_data', function(table) {
         table.increments('id').primary();
+        table.string('from_data_id', 20).notNullable();
         table.string('no_unit', 8).notNullable();
         table.string('model_unit', 15).notNullable();
         table.string('owner', 15).nullable();
         table.timestamp('date_trx').notNullable();
+        table.float('hm_last', 20);
         table.float('hm_km', 20).notNullable();
+        table.float('qty_last', 20).notNullable();
         table.float('qty', 20).notNullable();
         table.float('flow_start', 20).notNullable();
         table.float('flow_end', 20).notNullable();
@@ -21,10 +24,11 @@ exports.up = function(knex) {
         table.string('name_operator', 25).nullable();
         table.time('start').notNullable();
         table.time('end').notNullable();
-        table.integer('lkf_id').notNullable();
+        table.float('fbr', 20).notNullable();
+        table.string('lkf_id',20).notNullable();
         table.string('signature', 40).notNullable();
         table.enu('type', ['Issued','Receipt','Transfer','Receipt Supplier','Quota']).notNullable();
-        table.integer('reference').nullable();
+        table.string('reference',20).nullable();
         table.string('photo', 40).notNullable();
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
