@@ -7,6 +7,7 @@ require('dotenv').config();
 const port = process.env.PORT || 9111;
 
 const formLkfRoutes = require('./routes/form_lkf');
+const formDataRoutes = require('./routes/form_data');
 
 // Cors Setup
 app.options('/*', (res, req) => {
@@ -32,6 +33,7 @@ app.get('/', (res, req) => {
 })
 
 formLkfRoutes(app)
+formDataRoutes(app)
 
 
 // Server Listener

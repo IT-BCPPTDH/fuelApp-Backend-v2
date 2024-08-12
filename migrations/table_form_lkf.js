@@ -5,6 +5,7 @@
 exports.up = function(knex) {
     return knex.schema.createTable('form_lkf', function(table) {
         table.increments('id').primary();
+        table.string('lkf_id', 20).notNullable();
         table.date('date').notNullable();
         table.string('shift', 8).notNullable();
         table.float('hm_start', 20).notNullable();
