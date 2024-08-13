@@ -8,6 +8,7 @@ const port = process.env.PORT || 9111;
 
 const formLkfRoutes = require('./routes/form_lkf');
 const formDataRoutes = require('./routes/form_data');
+const loginRoutes = require('./routes/login');
 
 // Cors Setup
 app.options('/*', (res, req) => {
@@ -34,6 +35,7 @@ app.get('/', (res, req) => {
 
 formLkfRoutes(app)
 formDataRoutes(app)
+loginRoutes(app)
 
 
 // Server Listener
