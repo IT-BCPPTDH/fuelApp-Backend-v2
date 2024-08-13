@@ -9,6 +9,10 @@ const QUERY_STRING = {
     // form_data
     postFormData:`insert into form_data (from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, dip_start, dip_end, sonding_start, sonding_end, jde_operator, name_operator, start, "end", fbr, lkf_id, signature, type, reference, photo, created_by)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)`,
+
+    insert_log : `INSERT INTO fuelman_log(date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4)`,
+    update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2`,
+    getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`
 }
 
 module.exports = {
