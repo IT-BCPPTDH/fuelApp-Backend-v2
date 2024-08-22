@@ -12,7 +12,116 @@ const QUERY_STRING = {
 
     insert_log : `INSERT INTO fuelman_log(date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4)`,
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2`,
-    getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`
+    getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
+
+    getTotalSonding: `select SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing from form_lkf fl 
+    where fl."date" = $1`,
+
+    getTotalType : `SELECT
+            COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
+            COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
+            COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
+        FROM form_data fd
+        left join form_lkf fl on fl.lkf_id = fd.lkf_id 
+        where fl."date" = $1 and fl.station = $2`,
+
+    getPrevious : `SELECT SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing
+    FROM form_lkf fl 
+    WHERE fl."date" = $1
+    AND shift = $2;
+    `,
+    getAllLkf : `SELECT * FROM form_lkf fl WHERE fl."date" = $1`,
+
+    getTotals : `SELECT 
+        fl.date, 
+        fl.station, 
+        sum(fl.opening_sonding) AS total_opening, 
+        SUM(fl.closing_sonding) AS total_closing,
+        COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+        COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+    FROM form_lkf fl
+    LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
+    WHERE fl.date = $1
+    GROUP BY fl.date, fl.station;`,
+
+    getTotalBefores : `SELECT 
+            fl.date, 
+            fl.station, 
+            sum(fl.opening_sonding) AS total_opening, 
+            SUM(fl.closing_sonding) AS total_closing,
+            COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+            COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+            COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+        FROM form_lkf fl
+        LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
+        WHERE fl.date = $1 AND fl.shift = $2
+        GROUP BY fl.date, fl.station;`,
+
+    
+    getAllLkfTotal : `SELECT * FROM form_lkf fl WHERE fl."date" = $1 and fl.station = $2`,
+
+    getPreviouss : `SELECT SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing,
+        sum(fl.opening_sonding) AS total_opening, 
+        SUM(fl.closing_sonding) AS total_closing,
+        COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+        COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+    FROM form_lkf fl 
+    LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
+    WHERE fl."date" = $1
+    AND shift = $2 AND station = $3;`,
+
+    getTotalsStations: `SELECT 
+        fl.lkf_id, 
+        fl."date", 
+        fl.fuelman_id, 
+        fl."status", 
+        fl.time_opening, 
+        fl2.login_time, 
+        fl2.logout_time
+    FROM form_lkf fl
+    JOIN fuelman_log fl2 
+        ON fl.date = fl2.date 
+        AND fl.fuelman_id = fl2.jde_operator
+    WHERE fl.station = $1 
+      AND fl."date" = $2;
+    `,
+
+    getShiftStation: `SELECT 
+        fl.lkf_id, fl."date", fl.shift, fl.station, fl.fuelman_id, fl."status", fl.time_opening
+    FROM form_lkf fl
+    WHERE fl.station = $1 AND fl."date" = $2`,
+
+    getLogStation: `select * from fuelman_log fl 
+    where station = $1 AND "date" = $2`,
+
+    getAllFormData : `select fl.opening_dip, fl.closing_dip, fl.flow_meter_start, fl.flow_meter_end, fl.opening_sonding,
+        COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
+        COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
+    FROM form_data fd
+    left join form_lkf fl on fl.lkf_id = fd.lkf_id 
+    where fl.lkf_id = $1
+    group by fl.opening_dip, fl.closing_dip,fl.flow_meter_start, fl.flow_meter_end,fl.opening_sonding`,
+
+    getTableFormData: `select * from form_lkf fl 
+    where fl.lkf_id = $1`,
+
+    addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, quota_request, reason, document,request_by, request_name, approve_by, 
+        approve_name, created_at, created_by) 
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13,$14,$15)`,
+    
+    getQuotaTotal:`select SUM(ftr.quota_request) as total from form_table_request ftr 
+    where ftr."date" = $1`,
+ 
+    getTotalByShiftDay: `select SUM(ftr.quota_request) as total_day from form_table_request ftr 
+    where ftr."date" = $1 and ftr.shift = 'Day'`,
+
+    getTotalByShiftNight: `select SUM(ftr.quota_request) as total_night from form_table_request ftr 
+    where ftr."date" = $1 and ftr.shift = 'Night'`,
+
+    getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
 }
 
 module.exports = {
