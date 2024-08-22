@@ -9,6 +9,10 @@ const port = process.env.PORT || 9111;
 const formLkfRoutes = require('./routes/form_lkf');
 const formDataRoutes = require('./routes/form_data');
 const loginRoutes = require('./routes/login');
+const adminDashboardRoutes = require('./routes/admin_dashboard_routes')
+const adminDashboardStationRoutes = require('./routes/admin_dashboard_station_routes')
+const adminDashboardDataRoutes = require('./routes/admin_dashboard_form_data_routes')
+const adminRequestQuotaRoutes = require('./routes/admin_request_quota_routes')
 
 // Cors Setup
 app.options('/*', (res, req) => {
@@ -36,6 +40,10 @@ app.get('/', (res, req) => {
 formLkfRoutes(app)
 formDataRoutes(app)
 loginRoutes(app)
+adminDashboardRoutes(app)
+adminDashboardStationRoutes(app)
+adminDashboardDataRoutes(app)
+adminRequestQuotaRoutes(app)
 
 
 // Server Listener
