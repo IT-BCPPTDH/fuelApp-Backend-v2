@@ -122,6 +122,20 @@ const QUERY_STRING = {
     where ftr."date" = $1 and ftr.shift = 'Night'`,
 
     getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
+
+    getHomeTotals : `select fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end, SUM(fl.opening_dip) as op_dip,
+    SUM(fl.opening_dip) as close_dip,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+    from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl.lkf_id = $1
+    group by fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end`,
+
+    getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
+    fd.hm_km, fd.hm_last, fd.jde_operator, fd.name_operator from form_data fd 
+    where fd.lkf_id = $1`
 }
 
 module.exports = {
