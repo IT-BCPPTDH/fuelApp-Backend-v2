@@ -9,7 +9,7 @@ const getTotalStation = async (params) => {
         const dateNow = formatYYYYMMDD(params.tanggal)
         const station = params.station
         result = await filterData(params.tanggal, station, false)
-        let dataSonding = await db.query(QUERY_STRING.getTotalsStations,[dateNow, station])
+        let dataSonding = await db.query(QUERY_STRING.getTotalsStations,[station, dateNow])
         const data = { 
             prevSonding : result.dataClosingPrev ? result.dataClosingPrev: 0,
             openSonding :  dataSonding.rows[0].total_opening,
@@ -40,7 +40,6 @@ const getTableStation = async (params) => {
         const mergedData = getDataStations.rows.map(itemA => {
             const matchingItemB = loginData.rows.find(itemB => itemB.station === itemA.station
                 && itemB.jde_operator === itemA.fuelman_id);
-                console.log(matchingItemB)
             if (matchingItemB) {
               return {
                 ...itemA,
