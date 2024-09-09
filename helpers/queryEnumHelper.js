@@ -23,7 +23,7 @@ const QUERY_STRING = {
             COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
         FROM form_data fd
         left join form_lkf fl on fl.lkf_id = fd.lkf_id 
-        where fl."date" = $1 and fl.station = $2`,
+        where fl."date" = $1`,
 
     getPrevious : `SELECT SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing
     FROM form_lkf fl 
