@@ -128,17 +128,22 @@ async function filterData(dates,  isTable) {
         }
     }else{
         const lastData = openData.length - 1
-        shift = openData[lastData].shift === "Night" ? 'Day' : 'Night';
-        date = openData[lastData].shift === "Night" ? dateNow : datePrevs;
-        if(isTable){
-            result = await processDataTable(date, shift, getData.rows[lastData].opening_sonding);
-        }else{
-            result = await processShiftData(date, shift, getData.rows[lastData].opening_sonding);
-            result = {
-                ...res,
-                interShiftDtoNs : res.interShift
+        if(lastData != -1){
+            shift = openData[lastData].shift === "Night" ? 'Day' : 'Night';
+            date = openData[lastData].shift === "Night" ? dateNow : datePrevs;
+            if(isTable){
+                result = await processDataTable(date, shift, getData.rows[lastData].opening_sonding);
+            }else{
+                result = await processShiftData(date, shift, getData.rows[lastData].opening_sonding);
+                result = {
+                    ...res,
+                    interShiftDtoNs : res.interShift
+                }
             }
+        }else{
+            return false
         }
+       
     }
     return result
 }
