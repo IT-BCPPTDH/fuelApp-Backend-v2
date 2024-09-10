@@ -106,6 +106,7 @@ const QUERY_STRING = {
     group by fl.opening_dip, fl.closing_dip,fl.flow_meter_start, fl.flow_meter_end,fl.opening_sonding`,
 
     getTableFormData: `select * from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
     where fl.lkf_id = $1`,
 
     addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, quota_request, reason, document,request_by, request_name, approve_by, 
@@ -134,7 +135,7 @@ const QUERY_STRING = {
     group by fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end`,
 
     getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
-    fd.hm_km, fd.hm_last, fd.jde_operator, fd.name_operator from form_data fd 
+    fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
     where fd.lkf_id = $1`
 }
 
