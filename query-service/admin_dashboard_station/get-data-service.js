@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY_HHMMSS } = require('../../helpers/dateHelper');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
@@ -40,14 +40,24 @@ const getTableStation = async (params) => {
         const mergedData = getDataStations.rows.map(itemA => {
             const matchingItemB = loginData.rows.find(itemB => itemB.station === itemA.station
                 && itemB.jde_operator === itemA.fuelman_id);
+                console.log(1, itemA)
+
+            const formattedDate = formatDateToDDMMYYYY(itemA.date)
+            const formattedLogin = formatDateTimeToDDMMYYYY_HHMMSS(itemA.time_opening)
             if (matchingItemB) {
               return {
                 ...itemA,
-                login_time: matchingItemB.login_time || 'N/A',
-                logout_time: matchingItemB.logout_time || 'N/A'
+                date: formattedDate,
+                time_opening: formattedLogin,
+                login_time: matchingItemB.login_time ? formatDateTimeToDDMMYYYY_HHMMSS(matchingItemB.login_time) : 'N/A',
+                logout_time: matchingItemB.logout_time ? formatDateTimeToDDMMYYYY_HHMMSS(matchingItemB.logout_time) : 'N/A'
               };
             }
-            return itemA;
+            return {
+                ...itemA,
+                date: formattedDate,  
+                time_opening: formattedLogin  
+              };
         });
         return mergedData
     }catch(err){
