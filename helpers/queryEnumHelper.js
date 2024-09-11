@@ -136,7 +136,27 @@ const QUERY_STRING = {
 
     getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
     fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
-    where fd.lkf_id = $1`
+    where fd.lkf_id = $1`,
+
+    getStationShift: `select  SUM(fl.opening_sonding) as totalOpen, fl.shift, SUM(fl.closing_sonding) as totalClose,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS receiveKPC
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date"  = $1 and fl.station = $2
+    group by fl.shift`,
+    
+    getTotalStation:`select  SUM(fl.opening_sonding) as totalOpen,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS receiveKPC
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date"  = $1 and fl.station = $2`,
+
+    getStationBefore :`select  SUM(fl.opening_sonding) as totalOpen, fl.shift, SUM(fl.closing_sonding) as totalClose,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS total_receive
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date"  = $1 and fl.shift  = 'Night' and fl.station = $2
+    group by fl.shift`
 }
 
 module.exports = {

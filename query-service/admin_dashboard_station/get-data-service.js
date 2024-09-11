@@ -5,22 +5,22 @@ const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
 const getTotalStation = async (params) => {
     try {
-        let result
         const dateNow = formatYYYYMMDD(params.tanggal)
         const station = params.station
-        result = await filterData(params.tanggal, station, false)
-        let dataSonding = await db.query(QUERY_STRING.getTotalsStations,[station, dateNow])
+        const datePrevs = prevFormatYYYYMMDD(dateNow)
+        const totalBefores = await db.query(QUERY_STRING.getStationBefore, [datePrevs, station])
+        const totalStation = await db.query(QUERY_STRING.getTotalStation, [dateNow, station])
+        const stationShift = await db.query(QUERY_STRING.getStationShift, [dateNow, station])
         const data = { 
-            prevSonding : result.dataClosingPrev ? result.dataClosingPrev: 0,
-            openSonding :  dataSonding.rows[0].total_opening,
-            reciptKpc: dataSonding.rows[0].total_receive,
-            issuedTrx: dataSonding.rows[0].total_issued,
-            tfTrx: dataSonding.rows[0].total_transfer,
-            closeData: result.closeDataPrev,
-            closeSonding: dataSonding.rows[0].total_closing,
-            variant: result.variants,
-            intershiftNtoD: result.interShiftNtoDs,
-            intershiftDtoN: result.interShiftDtoNs
+            totalPrevSonding : totalBefores.rows[0].totalclose,
+            totalOpenSonding :  totalStation.rows[0].totalopen,
+            totalReciptKpc: totalStation.rows[0].receivekpc,
+            prevSondingDay : totalBefores.rows[0].totalclose,
+            openSondingDay: stationShift.rows[0].totalopen,
+            receiptKpcDay: stationShift.rows[0].receivekpc,
+            prevSondingNight : stationShift.rows[0].totalclose,
+            openSondingNight : stationShift.rows[1].totalopen,
+            receiptKPCNight : stationShift.rows[1].receivekpc,
         }
         return data
     } catch (error) {
@@ -40,7 +40,6 @@ const getTableStation = async (params) => {
         const mergedData = getDataStations.rows.map(itemA => {
             const matchingItemB = loginData.rows.find(itemB => itemB.station === itemA.station
                 && itemB.jde_operator === itemA.fuelman_id);
-                console.log(1, itemA)
 
             const formattedDate = formatDateToDDMMYYYY(itemA.date)
             const formattedLogin = formatDateTimeToDDMMYYYY_HHMMSS(itemA.time_opening)
@@ -65,53 +64,6 @@ const getTableStation = async (params) => {
         console.error('Error during update:', err);
         return false;
     }
-}
-
-async function processShiftData(date, shift, station, openingSonding) {
-    const getDataPrev = await db.query(QUERY_STRING.getPreviouss, [date,shift,station]);
-    const dataClosingPrev = getDataPrev.rows[0].total_closing;
-    const closeDataPrev = getDataPrev.rows[0].total_opening
-        + getDataPrev.rows[0].total_receive
-        - getDataPrev.rows[0].total_issued
-        - getDataPrev.rows[0].total_transfer;
-    const variants = dataClosingPrev - closeDataPrev;
-    const interShift = openingSonding - dataClosingPrev;
-
-    return {
-        dataClosingPrev,
-        closeDataPrev,
-        variants,
-        interShift
-    };
-}
-
-async function filterData(dates, station) {
-    let shift, date, result, res
-    const dateNow = formatYYYYMMDD(dates)
-    const datePrevs = prevFormatYYYYMMDD(dates)
-    const getData = await db.query(QUERY_STRING.getAllLkfTotal, [dateNow, station])
-    const openData = getData.rows.filter(entry => entry.shift === "Night");
-    if(openData.length > 0){
-        const lastData = getData.rows.length - 1
-        shift = getData.rows[lastData].shift === "Night" ? 'Day' : 'Night';
-        date = getData.rows[lastData].shift === "Night" ? dateNow : datePrevs;
-        res = await processShiftData(date, shift, station, getData.rows[lastData].opening_sonding);
-        result = {
-            ...res,
-            interShiftDtoNs : res.interShift
-            
-        }
-    }else{
-        const lastData = openData.length - 1
-        shift = openData[lastData].shift === "Night" ? 'Day' : 'Night';
-        date = openData[lastData].shift === "Night" ? dateNow : datePrevs;
-        result = await processShiftData(date, shift, station, getData.rows[lastData].opening_sonding);
-        result = {
-            ...res,
-            interShiftDtoNs : res.interShift
-        }
-    }
-    return result
 }
 
 
