@@ -7,6 +7,9 @@ const getTotalData = async (params) => {
     try {
         const res = await db.query(QUERY_STRING.getAllFormData,[params])
         const result = res.rows
+        if(result.length == 0){
+            return false
+        }
         const jmlIssued = result[0].total_issued + result[0].total_transfer
         const jmlBalance = result[0].opening_sonding - jmlIssued
         const data = { 
