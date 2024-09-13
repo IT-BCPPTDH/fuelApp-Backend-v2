@@ -109,17 +109,17 @@ const QUERY_STRING = {
     join form_data fd on fd.lkf_id = fl.lkf_id 
     where fl.lkf_id = $1`,
 
-    addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, quota_request, reason, document,request_by, request_name, approve_by, 
+    addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, station, quota_request, reason, document,request_by, request_name, approve_by, 
         approve_name, created_at, created_by) 
-        values($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13,$14,$15)`,
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13,$14,$15, $16)`,
     
-    getQuotaTotal:`select SUM(ftr.quota_request) as total from form_table_request ftr 
+    getQuotaTotal:`select SUM(ftr.quota_request) as total, count(ftr.unit_no) as total_unit from form_table_request ftr 
     where ftr."date" = $1`,
  
-    getTotalByShiftDay: `select SUM(ftr.quota_request) as total_day from form_table_request ftr 
+    getTotalByShiftDay: `select SUM(ftr.quota_request) as total_day, count(ftr.unit_no) as total_unit from form_table_request ftr 
     where ftr."date" = $1 and ftr.shift = 'Day'`,
 
-    getTotalByShiftNight: `select SUM(ftr.quota_request) as total_night from form_table_request ftr 
+    getTotalByShiftNight: `select SUM(ftr.quota_request) as total_night, count(ftr.unit_no) as total_unit from form_table_request ftr 
     where ftr."date" = $1 and ftr.shift = 'Night'`,
 
     getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
