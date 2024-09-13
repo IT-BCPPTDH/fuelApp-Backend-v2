@@ -10,6 +10,7 @@ exports.up = function(knex) {
         table.text('shift').notNullable();
         table.string('unit_no', 8).notNullable();
         table.string('model', 15).notNullable();
+        table.string('station', 10).notNullable();
         table.float('hmkm', 15).notNullable();
         table.text('reason').notNullable();
         table.float('quota_request', 10).notNullable();
