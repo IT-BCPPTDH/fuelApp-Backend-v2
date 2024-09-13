@@ -27,22 +27,32 @@ function formatDateToDDMMYYYY(dateString) {
 function formatDateTimeToDDMMYYYY_HHMMSS(dateString) {
     const date = new Date(dateString);
     
-    // Format Tanggal
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
 
-    // Format Waktu
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
 
-    // Gabungkan Tanggal dan Waktu
     return `${day}-${month}-${year} ${hours}:${minutes}`;
+}
+
+function formattedHHMM(hour) {
+    const [hours, minutes] = hour.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) {
+        return 'Invalid time';
+    }
+
+    const formattedHours = String(hours).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+
+    return `${formattedHours}:${formattedMinutes}`;
 }
 
 module.exports ={
     formatYYYYMMDD,
     prevFormatYYYYMMDD,
     formatDateToDDMMYYYY,
-    formatDateTimeToDDMMYYYY_HHMMSS
+    formatDateTimeToDDMMYYYY_HHMMSS,
+    formattedHHMM
 }
