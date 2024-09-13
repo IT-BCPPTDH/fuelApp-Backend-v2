@@ -48,8 +48,8 @@ const QUERY_STRING = {
     getTotalBefores : `SELECT 
             fl.date, 
             fl.station, 
-            sum(fl.opening_sonding) AS total_opening, 
-            SUM(fl.closing_sonding) AS total_closing,
+            sum(fl.opening_dip) AS total_opening, 
+            SUM(fl.closing_dip) AS total_closing,
             COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
             COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
             COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
@@ -61,9 +61,7 @@ const QUERY_STRING = {
     
     getAllLkfTotal : `SELECT * FROM form_lkf fl WHERE fl."date" = $1 and fl.station = $2`,
 
-    getPreviouss : `SELECT SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing,
-        sum(fl.opening_sonding) AS total_opening, 
-        SUM(fl.closing_sonding) AS total_closing,
+    getPreviouss : `SELECT SUM(fl.opening_dip) as total_opening, SUM(fl.closing_dip) as total_closing,
         COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
         COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
         COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
