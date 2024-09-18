@@ -18,6 +18,7 @@ exports.up = function(knex) {
         table.float('closing_dip', 20).nullable();
         table.float('closing_sonding', 20).nullable();
         table.float('close_data', 20).nullable();
+        table.float('variant', 20).nullable();
         table.float('flow_meter_start', 20).notNullable();
         table.float('flow_meter_end', 20).nullable();
         table.string('status', 8).notNullable();
