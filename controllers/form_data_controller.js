@@ -1,7 +1,8 @@
 const logger = require("../helpers/pinoLog");
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
-const { postFormData } = require("../query-service/form_data/insert");
+const { postFormData,insertToForm } = require("../query-service/form_data/insert");
 const { updateFromData } = require("../query-service/form_data/update");
+const { getPrevious, getData } = require("../query-service/form_data/getdata");
 
 async function operatorPostData(data) {
     try{
@@ -45,7 +46,88 @@ async function adminUpdateData(data) {
     }
 }
 
+async function getFormDataPrev(data) {
+    try{
+        let result = await getPrevious(data)
+        if(result.length > 0 ){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data',
+                data:result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data',
+                data:result
+            };
+        }
+    }catch(err){
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
+async function bulkInsert(bulkData){
+    try{
+        const dates = bulkData.map((itm) => itm.date_trx)
+        const uniqueDates = [...new Set(dates)];
+        const existingData = await getAllByDate(uniqueDates)
+        const arrData = []
+        for (let index = 0; index < bulkData.length; index++) {
+            const element = bulkData[index];
+            const isExisting = existingData.data.some(item => item.from_data_id === String(element.from_data_id));
+
+            if (!isExisting) {
+              await insertToForm(element);
+              arrData.push(element)
+            }
+        }
+    
+        return {
+          status: HTTP_STATUS.OK,
+          message: "Succesfully insert data!",
+          rowsLength: arrData.length
+        }
+    }catch(error){
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${STATUS_MESSAGE.ERR_GET} ${error}`,
+          };
+    }
+}
+
+async function getAllByDate(data) {
+    try{
+        let result = await getData(data)
+        if(result.length > 0 ){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data',
+                data:result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data',
+                data:result
+            };
+        }
+    }catch(err){
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
 module.exports = {
     operatorPostData,
-    adminUpdateData
+    adminUpdateData,
+    getFormDataPrev,
+    bulkInsert
 }
