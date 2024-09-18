@@ -16,10 +16,6 @@ exports.up = function(knex) {
         table.float('qty', 20).notNullable();
         table.float('flow_start', 20).notNullable();
         table.float('flow_end', 20).notNullable();
-        table.float('dip_start', 20).nullable();
-        table.float('dip_end', 20).nullable();
-        table.float('sonding_start', 20).nullable();
-        table.float('sonding_end', 20).nullable();
         table.string('jde_operator', 8).notNullable();
         table.string('name_operator', 25).nullable();
         table.time('start').notNullable();
@@ -28,8 +24,9 @@ exports.up = function(knex) {
         table.string('lkf_id',20).notNullable();
         table.string('signature', 40).notNullable();
         table.enu('type', ['Issued','Receipt','Transfer','Receipt Supplier','Quota']).notNullable();
-        table.string('reference',20).nullable();
         table.string('photo', 40).notNullable();
+        table.boolean('isStatus').defaultTo(0);
+        table.boolean('isDelete').defaultTo(0);
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
         table.string('created_by', 25).notNullable();

@@ -7,12 +7,12 @@ const postFormData = async (data) => {
     try {
         const dt = new Date()
         
-        const { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, dip_start, dip_end, sonding_start, sonding_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, reference, photo, fuelman_id } = data
+        const { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data
 
         let sign = await base64ToImage(signature)
         let pic = await base64ToImage(photo)
 
-        const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, dip_start, dip_end, sonding_start, sonding_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, reference, photo, fuelman_id ]
+        const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ]
         
         let result = await db.query(QUERY_STRING.postFormData, params)
         
@@ -28,6 +28,31 @@ const postFormData = async (data) => {
     }
 };
 
+const insertToForm = async (dataJson) => {
+    try {
+        const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
+        const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
+
+        const createOperatorQuery = `
+          INSERT INTO form_data (${sanitizedColumns.join(', ')})
+          VALUES (${valuesPlaceholders})
+        `;
+
+        const values = Object.keys(dataJson).map(key => dataJson[key]);
+        const result = await db.query(createOperatorQuery, values);
+
+        if(result){
+            return true
+        }
+        return false
+
+    } catch (error) {
+        console.log(error)
+        return false
+    }
+}
+
 module.exports = {
-    postFormData
+    postFormData,
+    insertToForm
 }

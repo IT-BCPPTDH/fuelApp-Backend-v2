@@ -14,6 +14,7 @@ const getDataLogin = async (params) => {
                     const value = [formatYYYYMMDD(dt), user.data.JDE, user.data.fullname, getStation.data[0].fuel_station_name]
                     const insertToLog = await db.query(QUERY_STRING.insert_log, value)
                     const getData = await db.query(QUERY_STRING.getLogId, [params.JDE, params.station])
+                    const prevData = await db.query(QUERY_STRING.getPreviousData, [params.station])
                      const data = {
                         logId: getData.rows[0].id,
                         id: user.data.id,
@@ -22,7 +23,8 @@ const getDataLogin = async (params) => {
                         position: user.data.position,
                         division: user.data.division,
                         station: getStation.data[0].fuel_station_name,
-                        token: user.session_token
+                        token: user.session_token,
+                        prev : prevData.rows
                     }
                     return { success: true, data }
                 }
