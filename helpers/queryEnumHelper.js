@@ -34,7 +34,10 @@ const QUERY_STRING = {
         left join form_lkf fl on fl.lkf_id = fd.lkf_id 
         where fl."date" = $1`,
 
-    getPrevious : `SELECT SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing
+    getPrevious : `SELECT sum(fl.opening_sonding) AS total_opening, 
+    SUM(fl.closing_sonding) AS total_closing,
+    SUM(fl.close_data) As total_close_data,
+    SUM(fl.variant) As total_variant
     FROM form_lkf fl 
     WHERE fl."date" = $1
     AND shift = $2;
@@ -59,9 +62,12 @@ const QUERY_STRING = {
             fl.station, 
             sum(fl.opening_sonding) AS total_opening, 
             SUM(fl.closing_sonding) AS total_closing,
+            SUM(fl.close_data) As total_close_data,
+            SUM(fl.variant) As total_variant,
             COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
             COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-            COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+            COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receipt,
+            COALESCE(SUM(CASE WHEN fd.type = 'Receipt Supplier' THEN fd.qty ELSE 0 END), 0) AS total_receipt_kpc
         FROM form_lkf fl
         LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
         WHERE fl.date = $1 AND fl.shift = $2
