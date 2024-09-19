@@ -52,7 +52,6 @@ const getTableDashboard = async (params) => {
                 date: formatDateToDDMMYYYY(itemA.date)
             };
         });
-          
         return mergedData
     }catch(err){
         logger.error(err)
@@ -77,36 +76,30 @@ async function processShiftData(date, shift, openingSonding) {
 }
 
 async function processDataTable(date, shift, openingSonding) {
-    let closeDataPrev, variants, interShift, data
+    let data
     const updatedData = [];
     const getDataPrev = await db.query(QUERY_STRING.getTotalBefores, [date, shift]);
-    let item = getDataPrev.rows
-    data = {
-        closeDataPrev : item[0].total_closing,
-        closeDataPrev: item[0].total_close_data,
-        variant: item[0].total_variant,
-        interShift: openingSonding - item[0].total_closing
+    for (let i = 0;  i < getDataPrev.rows.length; i++ ){
+        const item = getDataPrev.rows[i];
+        if (item.length > 0) {
+            data = {
+              closeDataPrev: item[0].total_closing ? item[0].total_closing : 0,
+              closeDataPrev: item[0].total_close_data ? item[0].total_close_data : 0,
+              variant: item[0].total_variant ? item[0].total_variant : 0,
+              interShift: openingSonding - item[0].total_closing
+            };
+          } else {
+            data = {
+              closeDataPrev: 0,
+              closeDataPrev: 0,
+              variant: 0,
+              interShift: 0
+            };
+          }
+        updatedData.push(data)
     }
-    // for (let i = 0;  i < getDataPrev.rows.length; i++ ){
-    //     const items = getDataPrev.rows[i];
-    //     closeDataPrev = items.total_opening
-    //         + items.total_receive
-    //         - items.total_issued
-    //         - items.total_transfer;
-    //     variants = items.total_closing - closeDataPrev;
-    //     interShift = openingSonding - items.total_closing;
-        
-
-    //     data = {
-    //         ...items,
-    //         closeDataPrev,
-    //         variants,
-    //         interShift
-    //     }
-    //     updatedData.push(data)
-    // }
     
-    return data
+    return updatedData
 }
 
 async function filterData(dates,  isTable) {
@@ -148,7 +141,6 @@ async function filterData(dates,  isTable) {
         }
        
     }
-    console.log(result)
     return result
 }
 
