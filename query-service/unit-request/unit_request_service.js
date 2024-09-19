@@ -28,12 +28,19 @@ const getSummaryUnitReq = async (params) => {
 const insertUnitReq = async (data) => {
     try {
         const dt = new Date()
-        console.log(data.time)
         const { date, time, shift, unit_no, model, hmkm, station, quota_request, reason, document, request_by, request_name, approve_by, 
             approve_name, created_at, created_by} = data
         const params = [date, time, shift, unit_no, model, hmkm, station, quota_request, reason,  document, request_by, request_name, approve_by, 
             approve_name, created_at, created_by]
         let result = await db.query(QUERY_STRING.addQuota, params)
+
+        if(data.unit_no.includes('LV') || data.unit_no.includes('HLV')){
+            const query = `UPDATE quota_usage SET additional = ? WHERE "unitNo" = ?`;
+
+            const value = [quota_request, unit_no]
+            const res = await db.query(query, value);
+        }
+
         if(result.rowCount>0){
             return true
         }else{
