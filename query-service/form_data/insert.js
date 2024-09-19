@@ -11,6 +11,8 @@ const postFormData = async (data) => {
 
         let sign = await base64ToImage(signature)
         let pic = await base64ToImage(photo)
+        // let sign = "await base64ToImage(signature)"
+        // let pic = "await base64ToImage(photo)"
 
         const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ]
         

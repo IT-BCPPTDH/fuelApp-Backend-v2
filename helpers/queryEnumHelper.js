@@ -47,11 +47,12 @@ const QUERY_STRING = {
     getTotals : `SELECT 
         fl.date, 
         fl.station, 
-        sum(fl.opening_sonding) AS total_opening, 
-        SUM(fl.closing_sonding) AS total_closing,
+        SUM(distinct fl.opening_sonding) AS total_opening, 
+        SUM(distinct fl.closing_sonding) AS total_closing,
         COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
         COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
     WHERE fl.date = $1
@@ -151,25 +152,37 @@ const QUERY_STRING = {
     fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
     where fd.lkf_id = $1`,
 
-    getStationShift: `select  SUM(fl.opening_sonding) as totalOpen, fl.shift, SUM(fl.closing_sonding) as totalClose,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS receiveKPC
+    getStationShiftDay: `select  SUM(distinct fl.opening_sonding) as total_open, fl.shift, SUM(distinct fl.closing_sonding) as total_close,
+    SUM(distinct fl.variant) AS variant,
+    SUM(distinct fl.close_data) AS close_data,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.station = $2
+    where fl."date"  = $1 and fl.shift = 'Day' and fl.station = $2
     group by fl.shift`,
-    
-    getTotalStation:`select  SUM(fl.opening_sonding) as totalOpen,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS receiveKPC
-    FROM form_lkf fl
-    left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.station = $2`,
 
-    getStationBefore :`select  SUM(fl.opening_sonding) as totalOpen, fl.shift, SUM(fl.closing_sonding) as totalClose,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS total_receive
+    getStationShiftNigth: `select  SUM(distinct fl.opening_sonding) as total_open, fl.shift, SUM(distinct fl.closing_sonding) as total_close,
+    SUM(distinct fl.variant) AS variant,
+    SUM(distinct fl.close_data) AS close_data,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.shift  = 'Night' and fl.station = $2
-    group by fl.shift`
+    where fl."date"  = $1 and fl.shift = 'Night' and fl.station = $2
+    group by fl.shift`,
+
+    getAllDataStation :`select SUM(distinct fl.opening_sonding) as total_open, SUM(distinct fl.closing_sonding) as total_close,
+    SUM(distinct fl.variant) AS variant,
+    SUM(distinct fl.close_data) AS close_data,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date"  = $1 and fl.station = $2`
 }
 
 module.exports = {
