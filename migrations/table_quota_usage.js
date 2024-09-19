@@ -6,7 +6,6 @@ exports.up = function(knex) {
     return knex.schema.createTable('quota_usage', function(table) {
         table.increments('id').primary();
         table.date('date')
-        table.string('shift')
         table.string('unitNo', 8)
         table.float('quota', 10)
         table.float('used', 10)

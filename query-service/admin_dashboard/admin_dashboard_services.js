@@ -64,18 +64,14 @@ const getTableDashboard = async (params) => {
 async function processShiftData(date, shift, openingSonding) {
     const getDataPrev = await db.query(QUERY_STRING.getPrevious, [date, shift]);
     const dataClosingPrev = getDataPrev.rows[0].total_closing;
-    const totalDataType = await db.query(QUERY_STRING.getTotalType, [date]);
-    const closeDataPrev = getDataPrev.rows[0].total_opening
-        + totalDataType.rows[0].total_receive
-        - totalDataType.rows[0].total_issued
-        - totalDataType.rows[0].total_transfer;
-    const variants = dataClosingPrev - closeDataPrev;
+    const closeDataPrev = getDataPrev.rows[0].total_close_data;
+    const variantPrev = getDataPrev.rows[0].total_variant;
     const interShift = openingSonding - dataClosingPrev;
 
     return {
         dataClosingPrev,
         closeDataPrev,
-        variants,
+        variantPrev,
         interShift
     };
 }
@@ -84,26 +80,33 @@ async function processDataTable(date, shift, openingSonding) {
     let closeDataPrev, variants, interShift, data
     const updatedData = [];
     const getDataPrev = await db.query(QUERY_STRING.getTotalBefores, [date, shift]);
-    for (let i = 0;  i < getDataPrev.rows.length; i++ ){
-        const items = getDataPrev.rows[i];
-        closeDataPrev = items.total_opening
-            + items.total_receive
-            - items.total_issued
-            - items.total_transfer;
-        variants = items.total_closing - closeDataPrev;
-        interShift = openingSonding - items.total_closing;
+    let item = getDataPrev.rows
+    data = {
+        closeDataPrev : item[0].total_closing,
+        closeDataPrev: item[0].total_close_data,
+        variant: item[0].total_variant,
+        interShift: openingSonding - item[0].total_closing
+    }
+    // for (let i = 0;  i < getDataPrev.rows.length; i++ ){
+    //     const items = getDataPrev.rows[i];
+    //     closeDataPrev = items.total_opening
+    //         + items.total_receive
+    //         - items.total_issued
+    //         - items.total_transfer;
+    //     variants = items.total_closing - closeDataPrev;
+    //     interShift = openingSonding - items.total_closing;
         
 
-        data = {
-            ...items,
-            closeDataPrev,
-            variants,
-            interShift
-        }
-        updatedData.push(data)
-    }
+    //     data = {
+    //         ...items,
+    //         closeDataPrev,
+    //         variants,
+    //         interShift
+    //     }
+    //     updatedData.push(data)
+    // }
     
-    return updatedData
+    return data
 }
 
 async function filterData(dates,  isTable) {
@@ -145,6 +148,7 @@ async function filterData(dates,  isTable) {
         }
        
     }
+    console.log(result)
     return result
 }
 

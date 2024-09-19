@@ -3,5 +3,5 @@ const { checkToken } = require('../helpers/redisTransaction');
 
 module.exports = (app) => {
     // operator
-    app.get('/quota-usage/get-data',(req,res) => quotaHandler.handleGetData(req,res));
+    app.get('/api/quota-usage/get-data',(req,res) => quotaHandler.handleGetData(req,res));
 }

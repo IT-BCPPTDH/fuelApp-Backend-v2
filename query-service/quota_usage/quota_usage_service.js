@@ -6,7 +6,36 @@ const { QUERY_STRING } = require('../../helpers/queryEnumHelper')
 
 const insertToOperator = async (dataJson) => {
     try {
-        const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
+        let items
+        const today = new Date().toISOString().split('T')[0];
+        if (dataJson.unit_no.includes('LV') && !dataJson.unit_no.includes('HLV')) {
+            items = {
+                date: today,
+                unitNo: dataJson.unit_no,
+                quota: 20,
+                used: 0,
+                additional: 0 
+            }
+        }else{
+            if(dataJson.brand.toLowerCase().includes('bus')){
+                items = {
+                    date: today,
+                    unitNo: dataJson.unit_no,
+                    quota: 40,
+                    used: 0,
+                    additional: 0 
+                }
+            }else{
+                items = {
+                    date: today,
+                    unitNo: dataJson.unit_no,
+                    quota: 30,
+                    used: 0,
+                    additional: 0 
+                }
+            }
+        }
+        const sanitizedColumns = Object.keys(items).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
 
         const createOperatorQuery = `
@@ -14,7 +43,7 @@ const insertToOperator = async (dataJson) => {
           VALUES (${valuesPlaceholders})
         `;
 
-        const values = Object.keys(dataJson).map(key => dataJson[key]);
+        const values = Object.keys(items).map(key => items[key]);
         const result = await db.query(createOperatorQuery, values);
 
         if(result){
