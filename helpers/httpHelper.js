@@ -61,8 +61,28 @@ const fetchFromMasterStation = async (data) => {
     }
 };
 
+const fetchUnitLV = async (data) => {
+    try {
+        const response = await fetch(`${master}/master/unit/get-hlv`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // body: JSON.stringify(arrayData)
+        });
+        if (!response.ok) {
+            throw new Error('Gagal mengambil data');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching data:', error.message);
+        throw error;
+    }
+};
+
 module.exports ={
     loginUser,
     fetchFromMasterStation,
-    signOut
+    signOut,
+    fetchUnitLV
 }
