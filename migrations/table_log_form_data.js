@@ -27,7 +27,7 @@ exports.up = function(knex) {
         table.float('fbr', 20).notNullable();
         table.string('lkf_id',20).notNullable();
         table.string('signature', 40).notNullable();
-        table.enu('type', ['Issued','Receipt','Transfer','Receipt Supplier','Quota']).notNullable();
+        table.enu('type', ['Issued','Receive','Transfer','Receive KPC']).notNullable();
         table.string('reference',20).nullable();
         table.string('photo', 40).notNullable();
         table.timestamp('created_at').defaultTo(knex.fn.now());
