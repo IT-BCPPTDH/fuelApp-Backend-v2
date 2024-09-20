@@ -4,6 +4,7 @@ const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 const { insertToOperator} = require('../query-service/quota_usage/quota_usage_service')
 const cron = require('node-cron');
 const { fetchUnitLV } = require('../helpers/httpHelper')
+const logger = require("../helpers/pinoLog");
 
 async function bulkInsertOperator(){
     try{
