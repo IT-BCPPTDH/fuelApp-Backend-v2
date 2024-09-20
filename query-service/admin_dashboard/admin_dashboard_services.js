@@ -36,8 +36,11 @@ const getTableDashboard = async (params) => {
         const dateNow = formatYYYYMMDD(params.tanggal)
         const getDataStations =  await db.query(QUERY_STRING.getTotals, [dateNow])
         result = await filterData(params.tanggal, true)
-        const mergedData = getDataStations.rows.map(itemA => {
-            const matchingItemB = result.find(itemB => itemB.station === itemA.station);
+        const mergedData = (getDataStations?.rows || []).map(itemA => {
+            const matchingItemB = Array.isArray(result) 
+              ? result.find(itemB => itemB.station === itemA.station) 
+              : undefined;
+          
             if (matchingItemB) {
               return {
                 ...itemA,
@@ -47,11 +50,13 @@ const getTableDashboard = async (params) => {
                 interShift: matchingItemB.interShift
               };
             }
+            
             return {
-                ...itemA,
-                date: formatDateToDDMMYYYY(itemA.date)
+              ...itemA,
+              date: formatDateToDDMMYYYY(itemA.date)
             };
-        });
+          });
+          
         return mergedData
     }catch(err){
         logger.error(err)
