@@ -1,7 +1,8 @@
 const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 // const bulkData = require('../data-json/operator.json')
-const { insertToOperator} = require('../query-service/quota_usage/quota_usage_service')
+const { formatYYYYMMDD } = require('../helpers/dateHelper');
+const { insertToOperator, getTotal} = require('../query-service/quota_usage/quota_usage_service')
 const cron = require('node-cron');
 const { fetchUnitLV } = require('../helpers/httpHelper')
 const logger = require("../helpers/pinoLog");
@@ -46,8 +47,9 @@ cron.schedule('0 6 * * *', async () => {
   }
 });
 
-async function getAllData() {
+async function getAllData(Json) {
     try{
+        const data = formatYYYYMMDD(Json)
         let result = await getTotal(data)
         // let result = await bulkInsertOperator()
         if(result){

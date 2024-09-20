@@ -57,6 +57,18 @@ const insertToOperator = async (dataJson) => {
     }
 }
 
+const getTotal = async (params)  => {
+    try {
+        let data = await db.query(QUERY_STRING.getAllQuota,[params])
+        return data.rows
+    } catch (error) {
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+}
+
 module.exports = {
-    insertToOperator
+    insertToOperator,
+    getTotal
 }

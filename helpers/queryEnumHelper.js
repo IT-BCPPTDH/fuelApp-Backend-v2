@@ -182,7 +182,9 @@ const QUERY_STRING = {
     COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.station = $2`
+    where fl."date"  = $1 and fl.station = $2`,
+
+    getAllQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false'`
 }
 
 module.exports = {
