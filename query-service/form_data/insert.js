@@ -19,6 +19,10 @@ const postFormData = async (data) => {
         if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
             const query = `UPDATE quota_usage SET used = ? WHERE "unitNo" = ?`;
 
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit])
+            if(existingData.rows.length > 0){
+                qty += existingData.rows[0].used
+            }
             const value = [qty, no_unit]
             const res = await db.query(query, value);
         }
@@ -48,9 +52,14 @@ const insertToForm = async (dataJson) => {
         const values = Object.keys(dataJson).map(key => dataJson[key]);
         const result = await db.query(createOperatorQuery, values);
 
+        //jumlahkan dulu bila qty dari nomor yang sama
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
-            const params = [dataJson.qty, dataJson.no_unit]
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit])
+            if(existingData.rows.length > 0){
+                dataJson.qty += existingData.rows[0].used
+            }
 
+            const params = [dataJson.qty, dataJson.no_unit]
             const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
             const res = await db.query(query, params)
         }
