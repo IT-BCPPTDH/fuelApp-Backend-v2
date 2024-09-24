@@ -9,10 +9,8 @@ const postFormData = async (data) => {
         
         const { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data
 
-        let sign = await base64ToImage(signature)
-        let pic = await base64ToImage(photo)
-        // let sign = "await base64ToImage(signature)"
-        // let pic = "await base64ToImage(photo)"
+        // let sign = await base64ToImage(signature)
+        // let pic = await base64ToImage(photo)
 
         const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ]
         
@@ -63,12 +61,56 @@ const insertToForm = async (dataJson) => {
         return false
 
     } catch (error) {
+        logger.error(error)
         console.log(error)
+        return false
+    }
+}
+
+const deleteForm = async (params) => {
+    try{
+        const res = await db.query(QUERY_STRING.DELETE_FORM_DATA, [params])
+        if(res){
+            return true
+        }else{
+            return false
+        }
+    }catch (error){
+        logger.error(error)
+        return false
+    }
+}
+
+const editForm = async (updateFields) => {
+    try{
+        const setClauses = Object.keys(updateFields)
+            .filter(field => field !== 'id')  
+            .map((field, index) => `${field} = $${index + 1}`)
+            .join(', ');
+
+        const values = Object.keys(updateFields)
+            .filter(field => field !== 'id')
+            .map(field => updateFields[field]);
+
+        values.push(updateFields.id);
+
+        const query = `UPDATE form_data SET ${setClauses} WHERE from_data_id = $${values.length}`;
+        const result = await db.query(query, values)
+
+        if(result){
+            return true
+        }
+
+        return false
+    }catch (error){
+        logger.error(error)
         return false
     }
 }
 
 module.exports = {
     postFormData,
-    insertToForm
+    insertToForm,
+    editForm,
+    deleteForm
 }

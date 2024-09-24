@@ -9,16 +9,25 @@ const logger = require("../helpers/pinoLog");
 
 async function bulkInsertOperator(){
     try{
+        const today = new Date().toISOString().split('T')[0];
         const unit = await fetchUnitLV()
-        for (let index = 0; index < unit.data.length; index++) {
-            const element = unit.data[index];
-            const inserted = await insertToOperator(element)
+        const checkData = await getTotal(today)
+        if(checkData){
+            return {
+                status: HTTP_STATUS.OK,
+                message: "Succesfully insert data!"
+            }
+        }else{
+            for (let index = 0; index < unit.data.length; index++) {
+                const element = unit.data[index];
+                const inserted = await insertToOperator(element)
+            }
+            
+            return {
+              status: HTTP_STATUS.OK,
+              message: "Succesfully insert data!"
+            }
         }
-        
-          return {
-            status: HTTP_STATUS.OK,
-            message: "Succesfully insert data!"
-          }
     }catch(error){
         return {
             status: HTTP_STATUS.BAD_REQUEST,
@@ -30,6 +39,7 @@ async function bulkInsertOperator(){
 /** This block code for update data based on date  */
 
 cron.schedule('0 6 * * *', async () => {
+    // cron.schedule('*/30 * * * * *', async () => {
   console.log("Loading for insert data at midnight...");
 
   try {
@@ -40,6 +50,7 @@ cron.schedule('0 6 * * *', async () => {
         message: "Successfully inserted data:", data
     }; 
   } catch (error) {
+    logger.error(err)
     return {
         status:HTTP_STATUS.BAD_REQUEST,
         message: "Something wrong with this: ", error

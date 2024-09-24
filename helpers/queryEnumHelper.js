@@ -9,6 +9,8 @@ const QUERY_STRING = {
     // form_data
     postFormData:`insert into form_data (from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, "end", fbr, lkf_id, signature, type, photo, created_by)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+    
+    DELETE_FORM_DATA: `UPDATE form_data SET "isDelete" = true WHERE from_data_id = $1`,
 
     getLastDataByStation: `select * from form_data 
     where no_unit = $1
@@ -121,7 +123,7 @@ const QUERY_STRING = {
 
     getTableFormData: `select * from form_lkf fl 
     join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl.lkf_id = $1`,
+    where fl.lkf_id = $1 and "isDelete" = false`,
 
     addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, station, quota_request, reason, document,request_by, request_name, approve_by, 
         approve_name, created_at, created_by) 
