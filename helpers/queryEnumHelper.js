@@ -16,6 +16,8 @@ const QUERY_STRING = {
     where no_unit = $1
     LIMIT 1;`, 
 
+    getExistingQuota : `select * from quota_usage where unitNo = $1 and "isDelete" = false`,
+
     getPreviousData: `select * from form_lkf fl where fl.station = $1
     ORDER BY shift DESC LIMIT 1 OFFSET 1`, 
 
