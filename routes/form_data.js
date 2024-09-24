@@ -9,4 +9,5 @@ module.exports = (app) => {
 
     // admin
     app.put('/api/admin/update-data',(res,req) => formDataHandler.handleAdminUpdateData(res,req))
+    app.put('/api/admin/delete-data/:id',(res,req) => formDataHandler.handleDeleteData(res,req))
 }

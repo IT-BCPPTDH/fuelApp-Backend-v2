@@ -1,4 +1,4 @@
-const { operatorPostData, adminUpdateData, getFormDataPrev, bulkInsert } = require("../controllers/form_data_controller");
+const { operatorPostData, adminUpdateData, getFormDataPrev, bulkInsert, deleteData } = require("../controllers/form_data_controller");
 const { handleResponseJsonOperator, handleResponseParams, handleResponseJsonAdmin } = require("./httpResponseHandler");
 
 async function handleOperatorPostData(res, req) {
@@ -10,16 +10,22 @@ async function handleOperatorByUnit(res, req) {
 }
 
 async function handleAdminUpdateData(res, req) {
-    await handleResponseJsonAdmin(res, res, adminUpdateData, true)
+    await handleResponseJsonOperator(res, res, adminUpdateData, true)
 } 
 
 async function handleOperatorBulkData(res, req) {
     await handleResponseJsonOperator(res, req, bulkInsert, true )
 }
 
+
+async function handleDeleteData(res, req) {
+    await handleResponseParams(res, req, deleteData, 1 )
+}
+
 module.exports = {
     handleOperatorPostData,
     handleAdminUpdateData,
     handleOperatorByUnit,
-    handleOperatorBulkData
+    handleOperatorBulkData,
+    handleDeleteData
 }

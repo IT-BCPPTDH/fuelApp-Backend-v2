@@ -1,6 +1,6 @@
 const logger = require("../helpers/pinoLog");
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
-const { postFormData,insertToForm } = require("../query-service/form_data/insert");
+const { postFormData,insertToForm, deleteForm, editForm } = require("../query-service/form_data/insert");
 const { updateFromData } = require("../query-service/form_data/update");
 const { getPrevious, getData } = require("../query-service/form_data/getdata");
 
@@ -31,7 +31,7 @@ async function operatorPostData(data) {
 async function adminUpdateData(data) {
     try{
         
-        let result = await updateFromData(data)
+        let result = await editForm(data)
         return {
             status: HTTP_STATUS.CREATED,
             message: 'Data Created',
@@ -125,9 +125,35 @@ async function getAllByDate(data) {
     }
 }
 
+async function deleteData(data) {
+    try{
+        let result = await deleteForm(data)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data has been delete!',
+                data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.FORBIDDEN,
+                message: 'Cannot delete data',
+            };
+        }
+    } catch(err) {
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
+
 module.exports = {
     operatorPostData,
     adminUpdateData,
     getFormDataPrev,
-    bulkInsert
+    bulkInsert,
+    deleteData
 }
