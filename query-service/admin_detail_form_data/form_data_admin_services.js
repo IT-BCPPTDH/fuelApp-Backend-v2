@@ -11,15 +11,17 @@ const getTotalData = async (params) => {
             return false
         }
         const jmlIssued = result[0].total_issued + result[0].total_transfer
-        const jmlBalance = result[0].opening_sonding - jmlIssued
+        const jmlStock = result[0].total_open - result[0].total_close + result[0].total_receive + result[0].total_receive_kpc
+        const jmlBalance = jmlStock - jmlIssued
         const data = { 
-            openStock : result[0].opening_dip,
-            receipt: result[0].total_receipt,
-            stock: result[0].opening_sonding,
+            openStock : result[0].total_open,
+            receipt: result[0].total_receive,
+            stock: jmlStock,
             issued: result[0].total_issued + result[0].total_transfer,
-            totalBalance: jmlIssued,
-            closingStock : result[0].closing_stock,
-            dailyVarience: jmlBalance, 
+            totalIssued: jmlIssued,
+            totalBalance: jmlBalance,
+            closingStock : result[0].total_close,
+            dailyVarience: result[0].variant, 
             startMeter: result[0].flow_meter_start,
             closeMeter: result[0].flow_meter_end,
             totalMeter: result[0].flow_meter_end - result[0].flow_meter_start

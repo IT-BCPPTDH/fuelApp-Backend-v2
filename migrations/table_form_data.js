@@ -7,8 +7,8 @@ exports.up = function(knex) {
         table.increments('id').primary();
         table.string('from_data_id', 20).notNullable();
         table.string('no_unit', 8).notNullable();
-        table.string('model_unit', 15).notNullable();
-        table.string('owner', 15).nullable();
+        table.string('model_unit', 50).notNullable();
+        table.string('owner', 50).nullable();
         table.timestamp('date_trx').notNullable();
         table.float('hm_last', 20);
         table.float('hm_km', 20).notNullable();
