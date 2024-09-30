@@ -54,7 +54,8 @@ const insertToForm = async (dataJson) => {
 
         //jumlahkan dulu bila qty dari nomor yang sama
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit])
+            
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit])
             if(existingData.rows.length > 0){
                 dataJson.qty += existingData.rows[0].used
             }
