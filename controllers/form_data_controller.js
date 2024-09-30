@@ -79,7 +79,7 @@ async function bulkInsert(bulkData){
         const arrData = []
         for (let index = 0; index < bulkData.length; index++) {
             const element = bulkData[index];
-            const isExisting = existingData.data.some(item => item.from_data_id === String(element.from_data_id));
+            const isExisting = existingData.data.some(item => item.from_data_id === element.from_data_id);
 
             if (!isExisting) {
               await insertToForm(element);

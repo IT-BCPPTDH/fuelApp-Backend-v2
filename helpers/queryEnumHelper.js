@@ -21,53 +21,65 @@ const QUERY_STRING = {
     getPreviousData: `select * from form_lkf fl where fl.station = $1
     ORDER BY shift DESC LIMIT 1 OFFSET 1`, 
 
-    getDataByDate: `Select * from form_data where date_trx = ANY($1) AND "isDelete" = false`,
+    getDataByDate: `Select * from form_data where  DATE(date_trx) = ANY($1) AND "isDelete" = false`,
 
     insert_log : `INSERT INTO fuelman_log(date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4)`,
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
-    getTotalSonding: `select SUM(fl.opening_sonding) as total_opening, SUM(fl.closing_sonding) as total_closing from form_lkf fl 
+    getTotalSonding: `select SUM(DISTINCT fl.opening_dip) as total_opening from form_lkf fl 
+    where fl."date" = $1 and shift = 'Day'`,
+
+    getTotalType : `select SUM(fl.closing_dip) as total_closing,
+    SUM(distinct fl.close_data) As total_close_data,
+    SUM(fl.variant) As total_variant,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
+    from form_lkf fl
+    left join form_data fd on fd.lkf_id  = fl.lkf_id 
     where fl."date" = $1`,
 
-    getTotalType : `SELECT
-            COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
-            COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
-            COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
-        FROM form_data fd
-        left join form_lkf fl on fl.lkf_id = fd.lkf_id 
-        where fl."date" = $1`,
+    // getPrevious : `SELECT sum(fl.opening_sonding) AS total_opening, 
+    // SUM(fl.closing_sonding) AS total_closing,
+    // SUM(fl.close_data) As total_close_data,
+    // SUM(fl.variant) As total_variant
+    // FROM form_lkf fl 
+    // WHERE fl."date" = $1
+    // AND shift = $2;
+    // `,
 
-    getPrevious : `SELECT sum(fl.opening_sonding) AS total_opening, 
-    SUM(fl.closing_sonding) AS total_closing,
-    SUM(fl.close_data) As total_close_data,
-    SUM(fl.variant) As total_variant
+    getPrevious : `SELECT sum(DISTINCT closing_dip) as total_closing, 
+    SUM(fl.close_data) As total_close_data, SUM(fl.variant) As total_variant
     FROM form_lkf fl 
     WHERE fl."date" = $1
-    AND shift = $2;
-    `,
-    getAllLkf : `SELECT * FROM form_lkf fl WHERE fl."date" = $1`,
+    AND shift = $2`,
+
+    getAllLkf : `SELECT SUM(distinct fl.opening_dip) AS total_opening FROM form_lkf fl WHERE fl."date" = $1 and fl.shift = 'Day'`,
+    getAllLkfs : `SELECT fl.opening_dip AS total_opening FROM form_lkf fl WHERE fl."date" = $1 and fl.shift = 'Day'`,
 
     getTotals : `SELECT 
         fl.date, 
         fl.station, 
-        SUM(distinct fl.opening_sonding) AS total_opening, 
-        SUM(distinct fl.closing_sonding) AS total_closing,
+        SUM(distinct fl.opening_dip) AS total_opening, 
+        SUM(distinct fl.closing_dip) AS total_closing,
+        SUM(distinct fl.close_data) As total_close_data,
+        fl.variant As total_variant,
         COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
         COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+        COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+        COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
     WHERE fl.date = $1
-    GROUP BY fl.date, fl.station;`,
+    GROUP BY fl.date, fl.station, fl.variant;`,
 
     getTotalBefores : `SELECT 
             fl.date, 
             fl.station, 
-            sum(fl.opening_sonding) AS total_opening, 
-            SUM(fl.closing_sonding) AS total_closing,
-            SUM(fl.close_data) As total_close_data,
+            sum(distinct fl.opening_dip) AS total_opening, 
+            SUM(distinct fl.closing_dip) AS total_closing,
+            SUM(distinct fl.close_data) As total_close_data,
             SUM(fl.variant) As total_variant,
             COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
             COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
@@ -84,7 +96,7 @@ const QUERY_STRING = {
     getPreviouss : `SELECT SUM(fl.opening_dip) as total_opening, SUM(fl.closing_dip) as total_closing,
         COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
         COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+        COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive
     FROM form_lkf fl 
     LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
     WHERE fl."date" = $1
@@ -114,12 +126,17 @@ const QUERY_STRING = {
     getLogStation: `select * from fuelman_log fl 
     where station = $1 AND "date" = $2`,
 
-    getAllFormData : `select fl.opening_dip, fl.closing_dip, fl.flow_meter_start, fl.flow_meter_end, fl.opening_sonding,
-        COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
-        COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
-    FROM form_data fd
-    left join form_lkf fl on fl.lkf_id = fd.lkf_id 
+    getAllFormData : `select SUM(distinct fl.opening_dip) as total_open, 
+    SUM(distinct fl.closing_dip) as total_close, 
+    fl.flow_meter_start, fl.flow_meter_end,
+       SUM(distinct fl.variant) AS variant,
+       SUM(distinct fl.close_data) AS close_data,
+       COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+       COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+       COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
+       COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl.lkf_id = $1
     group by fl.opening_dip, fl.closing_dip,fl.flow_meter_start, fl.flow_meter_end,fl.opening_sonding`,
 
@@ -146,7 +163,7 @@ const QUERY_STRING = {
     SUM(fl.opening_dip) as close_dip,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive
     from form_lkf fl 
     join form_data fd on fd.lkf_id = fl.lkf_id 
     where fl.lkf_id = $1
@@ -156,34 +173,34 @@ const QUERY_STRING = {
     fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
     where fd.lkf_id = $1`,
 
-    getStationShiftDay: `select  SUM(distinct fl.opening_sonding) as total_open, fl.shift, SUM(distinct fl.closing_sonding) as total_close,
+    getStationShiftDay: `select  SUM(distinct fl.opening_dip) as total_open, fl.shift, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl."date"  = $1 and fl.shift = 'Day' and fl.station = $2
     group by fl.shift`,
 
-    getStationShiftNigth: `select  SUM(distinct fl.opening_sonding) as total_open, fl.shift, SUM(distinct fl.closing_sonding) as total_close,
+    getStationShiftNigth: `select  SUM(distinct fl.opening_dip) as total_open, fl.shift, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl."date"  = $1 and fl.shift = 'Night' and fl.station = $2
     group by fl.shift`,
 
-    getAllDataStation :`select SUM(distinct fl.opening_sonding) as total_open, SUM(distinct fl.closing_sonding) as total_close,
+    getAllDataStation :`select SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END), 0) AS total_receive,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl."date"  = $1 and fl.station = $2`,
