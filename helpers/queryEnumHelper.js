@@ -30,7 +30,7 @@ const QUERY_STRING = {
     getTotalSonding: `select SUM(DISTINCT fl.opening_dip) as total_opening from form_lkf fl 
     where fl."date" = $1 and shift = 'Day'`,
 
-    getTotalType : `select SUM(fl.closing_dip) as total_closing,
+    getTotalType : `select SUM(distinct fl.closing_dip) as total_closing,
     SUM(distinct fl.close_data) As total_close_data,
     SUM(fl.variant) As total_variant,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
