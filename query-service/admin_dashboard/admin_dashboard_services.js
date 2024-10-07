@@ -16,11 +16,11 @@ const getTotalDashboard = async (params) => {
             reciptKpc: dataType.rows[0].total_receive,
             issuedTrx: dataType.rows[0].total_issued,
             tfTrx: dataType.rows[0].total_transfer,
-            closeData: result.closeDataPrev,
-            closeSonding: dataSonding.rows[0].total_closing,
-            variant: result.variants,
-            intershiftNtoD: result.interShiftNtoDs,
-            intershiftDtoN: result.interShiftDtoNs
+            closeData: dataType.rows[0].total_close_data,
+            closeSonding: dataType.rows[0].total_closing,
+            variant: dataType.rows[0].total_variant,
+            intershiftNtoD: Math.round(result.interShiftNtoDs),
+            intershiftDtoN: Math.round(result.interShiftDtoNs)
         }
         return data
     } catch (error) {
@@ -45,8 +45,8 @@ const getTableDashboard = async (params) => {
               return {
                 ...itemA,
                 date: formatDateToDDMMYYYY(matchingItemB.date),
-                closeDataPrev: matchingItemB.closeDataPrev,
-                variants: matchingItemB.variants,
+                // closeDataPrev: matchingItemB.closeDataPrev,
+                // variants: matchingItemB.variants,
                 interShift: matchingItemB.interShift
               };
             }
@@ -55,7 +55,7 @@ const getTableDashboard = async (params) => {
               ...itemA,
               date: formatDateToDDMMYYYY(itemA.date)
             };
-          });
+        });
           
         return mergedData
     }catch(err){
@@ -80,27 +80,94 @@ async function processShiftData(date, shift, openingSonding) {
     };
 }
 
+// async function processDataTable(date, shift, openingSonding) {
+//     let data
+//     const updatedData = [];
+//     const getDataPrev = await db.query(QUERY_STRING.getTotalBefores, [date, shift]);
+//     for (let i = 0;  i < getDataPrev.rows.length; i++ ){
+//         const item = getDataPrev.rows[i];
+//         if (item.length > 0) {
+//             data = {
+//               closeDataPrev: item[0].total_closing ? item[0].total_closing : 0,
+//               closeDataPrev: item[0].total_close_data ? item[0].total_close_data : 0,
+//               variant: item[0].total_variant ? item[0].total_variant : 0,
+//               interShift: openingSonding - item[0].total_closing
+//             };
+//           } else {
+//             data = {
+//               closeDataPrev: 0,
+//               closeDataPrev: 0,
+//               variant: 0,
+//               interShift: 0
+//             };
+//           }
+//         updatedData.push(data)
+//     }
+    
+//     return updatedData
+// }
+
+// async function filterData(dates,  isTable) {
+//     let shift, date, result, res
+//     const dateNow = formatYYYYMMDD(dates)
+//     const datePrevs = prevFormatYYYYMMDD(dates)
+//     const getData = await db.query(QUERY_STRING.getAllLkf, [dateNow])
+//     const openData = getData.rows.filter(entry => entry.shift === "Night");
+//     if(openData.length > 0){
+//         const lastData = getData.rows.length - 1
+//         shift = getData.rows[lastData].shift === "Night" ? 'Day' : 'Night';
+//         date = getData.rows[lastData].shift === "Night" ? dateNow : datePrevs;
+//         if(isTable){
+//             result = await processDataTable(date, shift, getData.rows[lastData].opening_sonding);
+//         }else{
+//             res = await processShiftData(date, shift, getData.rows[lastData].opening_sonding);
+//             result = {
+//                 ...res,
+//                 interShiftDtoNs : res.interShift
+                
+//             }
+//         }
+//     }else{
+//         const lastData = openData.length - 1
+//         if(lastData != -1){
+//             shift = openData[lastData].shift === "Night" ? 'Day' : 'Night';
+//             date = openData[lastData].shift === "Night" ? dateNow : datePrevs;
+//             if(isTable){
+//                 result = await processDataTable(date, shift, getData.rows[lastData].opening_sonding);
+//             }else{
+//                 result = await processShiftData(date, shift, getData.rows[lastData].opening_sonding);
+//                 result = {
+//                     ...res,
+//                     interShiftDtoNs : res.interShift
+//                 }
+//             }
+//         }else{
+//             return false
+//         }
+       
+//     }
+//     return result
+// }
+
 async function processDataTable(date, shift, openingSonding) {
     let data
     const updatedData = [];
     const getDataPrev = await db.query(QUERY_STRING.getTotalBefores, [date, shift]);
     for (let i = 0;  i < getDataPrev.rows.length; i++ ){
         const item = getDataPrev.rows[i];
-        if (item.length > 0) {
-            data = {
-              closeDataPrev: item[0].total_closing ? item[0].total_closing : 0,
-              closeDataPrev: item[0].total_close_data ? item[0].total_close_data : 0,
-              variant: item[0].total_variant ? item[0].total_variant : 0,
-              interShift: openingSonding - item[0].total_closing
-            };
-          } else {
-            data = {
-              closeDataPrev: 0,
-              closeDataPrev: 0,
-              variant: 0,
-              interShift: 0
-            };
-          }
+        const matchingOpening = openingSonding.find(opening => opening.station === item.station);
+
+        
+        let interShift = 0;
+        if (matchingOpening) {
+            interShift = matchingOpening.opening_dip - item.total_closing;
+        }
+        data = {
+          closeDataPrev: item.total_closing,
+          closeDataPrev: item.total_close_data,
+          variant: item.total_variant ,
+          interShift: interShift
+        };
         updatedData.push(data)
     }
     
@@ -111,40 +178,19 @@ async function filterData(dates,  isTable) {
     let shift, date, result, res
     const dateNow = formatYYYYMMDD(dates)
     const datePrevs = prevFormatYYYYMMDD(dates)
-    const getData = await db.query(QUERY_STRING.getAllLkf, [dateNow])
-    const openData = getData.rows.filter(entry => entry.shift === "Night");
-    if(openData.length > 0){
-        const lastData = getData.rows.length - 1
-        shift = getData.rows[lastData].shift === "Night" ? 'Day' : 'Night';
-        date = getData.rows[lastData].shift === "Night" ? dateNow : datePrevs;
-        if(isTable){
-            result = await processDataTable(date, shift, getData.rows[lastData].opening_sonding);
-        }else{
-            res = await processShiftData(date, shift, getData.rows[lastData].opening_sonding);
-            result = {
-                ...res,
-                interShiftDtoNs : res.interShift
-                
-            }
-        }
+    shift = 'Night';
+    date = datePrevs;
+    if(isTable){
+        const getDatas = await db.query(QUERY_STRING.getAllLkfs, [dateNow])
+        result = await processDataTable(date, shift, getDatas.rows);
     }else{
-        const lastData = openData.length - 1
-        if(lastData != -1){
-            shift = openData[lastData].shift === "Night" ? 'Day' : 'Night';
-            date = openData[lastData].shift === "Night" ? dateNow : datePrevs;
-            if(isTable){
-                result = await processDataTable(date, shift, getData.rows[lastData].opening_sonding);
-            }else{
-                result = await processShiftData(date, shift, getData.rows[lastData].opening_sonding);
-                result = {
-                    ...res,
-                    interShiftDtoNs : res.interShift
-                }
-            }
-        }else{
-            return false
+        const getData = await db.query(QUERY_STRING.getAllLkf, [dateNow])
+        res = await processShiftData(date, shift, getData.rows[0].total_opening);
+        result = {
+            ...res,
+            interShiftDtoNs : res.interShift
+            
         }
-       
     }
     return result
 }
