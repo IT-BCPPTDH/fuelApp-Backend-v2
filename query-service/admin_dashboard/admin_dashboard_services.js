@@ -56,7 +56,7 @@ const getTableDashboard = async (params) => {
               date: formatDateToDDMMYYYY(itemA.date),
               total_opening : itemA.total_opening ? itemA.total_opening.toLocaleString('en-US') : 0,
               total_closing: itemA.total_closing ?  itemA.total_closing.toLocaleString('en-US') : 0,
-              total_issued : itemA.total_close_data ? itemA.total_close_data.toLocaleString('en-US') : 0,
+              total_issued : itemA.total_issued ? itemA.total_issued.toLocaleString('en-US') : 0,
               total_transfer : itemA.total_transfer ? itemA.total_transfer.toLocaleString('en-US') : 0,
               total_receive : itemA.total_receive ? itemA.total_receive.toLocaleString('en-US') : 0,
               total_receive_kpc : itemA.total_receive_kpc ? itemA.total_receive_kpc.toLocaleString('en-US'): 0,
