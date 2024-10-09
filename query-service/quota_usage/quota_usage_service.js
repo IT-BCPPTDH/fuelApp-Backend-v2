@@ -2,7 +2,9 @@ const db = require('../../database/helper');
 const knex = require('knex');
 const knexConfig = require('../../knexfile');
 const dbKnex = knex(knexConfig);
+const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper')
+const { formatDateToDDMMYYYY } = require('../../helpers/dateHelper')
 
 const insertToOperator = async (dataJson) => {
     try {
@@ -60,7 +62,12 @@ const insertToOperator = async (dataJson) => {
 const getTotal = async (params)  => {
     try {
         let data = await db.query(QUERY_STRING.getAllQuota,[params])
-        return data.rows
+        const formattedResult = data.rows.map((item, index) => ({
+            ...item,
+            number: index+1,
+            date: formatDateToDDMMYYYY(item.date)
+        }));
+        return formattedResult
     } catch (error) {
         logger.error(error)
         console.error('Error during update:', error);
@@ -68,7 +75,17 @@ const getTotal = async (params)  => {
     }
 }
 
+const updateActive = async (params) => {
+    const {active, unitNo} = params
+    const query = 'UPDATE quota_usage SET "isActive" = $1 WHERE "unitNo" = $2'
+
+    const value = [active, unitNo]
+    const res = await db.query(query, value);
+    return true
+}
+
 module.exports = {
     insertToOperator,
-    getTotal
+    getTotal,
+    updateActive
 }
