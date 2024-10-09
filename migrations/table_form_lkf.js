@@ -22,7 +22,7 @@ exports.up = function(knex) {
         table.float('flow_meter_start', 20).notNullable();
         table.float('flow_meter_end', 20).nullable();
         table.string('status', 8).notNullable();
-        table.timestamp('time_opening').notNullable();
+        table.timestamp('time_opening').nullable();
         table.string('signature', 40).nullable();
         table.string('note', 200).nullable();
         table.timestamp('created_at').defaultTo(knex.fn.now());
