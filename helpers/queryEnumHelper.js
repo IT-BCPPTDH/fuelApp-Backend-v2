@@ -14,7 +14,7 @@ const QUERY_STRING = {
 
     getLastDataByStation: `select * from form_data 
     where no_unit = $1
-    LIMIT 1;`, 
+    ORDER BY date_trx Desc LIMIT 1;`, 
 
     getExistingQuota : `select * from quota_usage where unitNo = $1 and "isDelete" = false`,
 
@@ -35,6 +35,7 @@ const QUERY_STRING = {
     SUM(fl.variant) As total_variant,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS total_receive_kpc,
     COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
     from form_lkf fl
     left join form_data fd on fd.lkf_id  = fl.lkf_id 
