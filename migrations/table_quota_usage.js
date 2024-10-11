@@ -7,6 +7,7 @@ exports.up = function(knex) {
         table.increments('id').primary();
         table.date('date')
         table.string('unitNo', 8)
+        table.string('modelUnit', 50)
         table.float('quota', 10)
         table.float('used', 10)
         table.float('additional')

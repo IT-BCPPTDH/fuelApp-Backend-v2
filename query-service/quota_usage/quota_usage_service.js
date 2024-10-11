@@ -4,25 +4,38 @@ const knexConfig = require('../../knexfile');
 const dbKnex = knex(knexConfig);
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper')
-const { formatDateToDDMMYYYY } = require('../../helpers/dateHelper')
+const { formatDateToDDMMYYYY,formatYYYYMMDD, formatYYYYMMDDBefore } = require('../../helpers/dateHelper')
 
 const insertToOperator = async (dataJson) => {
     try {
         let items
         const today = new Date().toISOString().split('T')[0];
         if (dataJson.unit_no.includes('LV') && !dataJson.unit_no.includes('HLV')) {
-            items = {
-                date: today,
-                unitNo: dataJson.unit_no,
-                quota: 20,
-                used: 0,
-                additional: 0 
+            if(dataJson.brand.includes('bus')){
+                items = {
+                    date: today,
+                    unitNo: dataJson.unit_no,
+                    modelUnit: "BUS",
+                    quota: 20,
+                    used: 0,
+                    additional: 0 
+                }
+            }else{
+                items = {
+                    date: today,
+                    unitNo: dataJson.unit_no,
+                    modelUnit: "LV",
+                    quota: 20,
+                    used: 0,
+                    additional: 0 
+                }
             }
         }else{
             if(dataJson.brand.toLowerCase().includes('bus')){
                 items = {
                     date: today,
                     unitNo: dataJson.unit_no,
+                    modelUnit: "BUS",
                     quota: 40,
                     used: 0,
                     additional: 0 
@@ -31,6 +44,7 @@ const insertToOperator = async (dataJson) => {
                 items = {
                     date: today,
                     unitNo: dataJson.unit_no,
+                    modelUnit: "HLV",
                     quota: 30,
                     used: 0,
                     additional: 0 
@@ -61,7 +75,18 @@ const insertToOperator = async (dataJson) => {
 
 const getTotal = async (params)  => {
     try {
-        let data = await db.query(QUERY_STRING.getAllQuota,[params])
+        let dateBefore
+        const dateNow = formatYYYYMMDD(params.tanggal)
+        if(params.option == "Daily"){
+            dateBefore = dateNow
+        }else if(params.option == "Weekly"){
+            const resultDate = formatYYYYMMDDBefore(dateNow, 7)
+            dateBefore = resultDate
+        }else{
+            const resultDate = formatYYYYMMDDBefore(dateNow, 30)
+            dateBefore = resultDate
+        }
+        let data = await db.query(QUERY_STRING.getAllQuota,[dateBefore, dateNow])
         const formattedResult = data.rows.map((item, index) => ({
             ...item,
             number: index+1,

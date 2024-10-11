@@ -11,6 +11,7 @@ const getTotalStation = async (params) => {
         const totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateNow, station])
         const stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateNow, station])
         const stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateNow, station])
+        console.log(stationShiftNight.rows)
         data = { 
             totalAllOpening : totalStation.rows[0].total_open ? totalStation.rows[0].total_open.toLocaleString('en-US') : 0,
             totalAllClosing :  totalStation.rows[0].total_close ? totalStation.rows[0].total_close.toLocaleString('en-US') : 0,
