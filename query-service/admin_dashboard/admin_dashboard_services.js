@@ -11,16 +11,16 @@ const getTotalDashboard = async (params) => {
         let dataSonding = await db.query(QUERY_STRING.getTotalSonding,[dateNow])
         let dataType = await db.query(QUERY_STRING.getTotalType,[dateNow])
         const data = { 
-            prevSonding : result.dataClosingPrev ? result.dataClosingPrev: 0,
-            openSonding :  dataSonding.rows[0].total_opening,
-            reciptKpc: dataType.rows[0].total_receive,
-            issuedTrx: dataType.rows[0].total_issued,
-            tfTrx: dataType.rows[0].total_transfer,
-            closeData: dataType.rows[0].total_close_data,
-            closeSonding: dataType.rows[0].total_closing,
-            variant: dataType.rows[0].total_variant,
-            intershiftNtoD: Math.round(result.interShiftNtoDs),
-            intershiftDtoN: Math.round(result.interShiftDtoNs)
+            prevSonding : result.dataClosingPrev ? result.dataClosingPrev.toLocaleString('en-US') : 0,
+            openSonding : dataSonding.rows[0].total_opening ? dataSonding.rows[0].total_opening.toLocaleString('en-US') : 0,
+            reciptKpc: dataType.rows[0].total_receive ? dataType.rows[0].total_receive.toLocaleString('en-US') : 0,
+            issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
+            tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
+            closeData: dataType.rows[0].total_close_data ? dataType.rows[0].total_close_data.toLocaleString('en-US') : 0,
+            closeSonding: dataType.rows[0].total_closing ? dataType.rows[0].total_closing.toLocaleString('en-US') : 0,
+            variant: dataType.rows[0].total_variant ? dataType.rows[0].total_variant.toLocaleString('en-US') : 0,
+            intershiftNtoD: result.interShiftNtoDs ?  result.interShiftNtoDs.toLocaleString('en-US') : 0,
+            intershiftDtoN: result.interShiftDtoNs ? result.interShiftDtoNs.toLocaleString('en-US') : 0
         }
         return data
     } catch (error) {
@@ -53,7 +53,15 @@ const getTableDashboard = async (params) => {
             
             return {
               ...itemA,
-              date: formatDateToDDMMYYYY(itemA.date)
+              date: formatDateToDDMMYYYY(itemA.date),
+              total_opening : itemA.total_opening ? itemA.total_opening.toLocaleString('en-US') : 0,
+              total_closing: itemA.total_closing ?  itemA.total_closing.toLocaleString('en-US') : 0,
+              total_issued : itemA.total_close_data ? itemA.total_close_data.toLocaleString('en-US') : 0,
+              total_transfer : itemA.total_transfer ? itemA.total_transfer.toLocaleString('en-US') : 0,
+              total_receive : itemA.total_receive ? itemA.total_receive.toLocaleString('en-US') : 0,
+              total_receive_kpc : itemA.total_receive_kpc ? itemA.total_receive_kpc.toLocaleString('en-US'): 0,
+              total_close_data : itemA.total_close_data ? itemA.total_close_data.toLocaleString('en-US') : 0,
+              total_variant : itemA.total_variant ? itemA.total_variant.toLocaleString('en-US') : 0
             };
         });
           
