@@ -13,18 +13,20 @@ const getTotalData = async (params) => {
         const jmlIssued = result[0].total_issued + result[0].total_transfer
         const jmlStock = result[0].total_open - result[0].total_close + result[0].total_receive + result[0].total_receive_kpc
         const jmlBalance = jmlStock - jmlIssued
+        const totalIssued = result[0].total_issued + result[0].total_transfer
+        const totalMeters = result[0].flow_meter_end - result[0].flow_meter_start
         const data = { 
-            openStock : result[0].total_open,
-            receipt: result[0].total_receive,
-            stock: jmlStock,
-            issued: result[0].total_issued + result[0].total_transfer,
-            totalIssued: jmlIssued,
-            totalBalance: jmlBalance,
-            closingStock : result[0].total_close,
-            dailyVarience: result[0].variant, 
-            startMeter: result[0].flow_meter_start,
-            closeMeter: result[0].flow_meter_end,
-            totalMeter: result[0].flow_meter_end - result[0].flow_meter_start
+            openStock : result[0].total_open ? result[0].total_open.toLocaleString('en-US') : 0,
+            receipt: result[0].total_receive ? result[0].total_receive.toLocaleString('en-US') : 0,
+            stock: jmlStock ? jmlStock.toLocaleString('en-US') : 0,
+            issued: totalIssued ? totalIssued.toLocaleString('en-US') : 0,
+            totalIssued: jmlIssued ? jmlIssued.toLocaleString('en-US') : 0,
+            totalBalance: jmlBalance ? jmlBalance.toLocaleString('en-US') : 0,
+            closingStock : result[0].total_close ? result[0].total_close.toLocaleString('en-US') : 0,
+            dailyVarience: result[0].variant ? result[0].variant.toLocaleString('en-US') : 0, 
+            startMeter: result[0].flow_meter_start ? result[0].flow_meter_start.toLocaleString('en-US') : 0,
+            closeMeter: result[0].flow_meter_end ? result[0].flow_meter_end.toLocaleString('en-US') : 0,
+            totalMeter: totalMeters ? totalMeters.toLocaleString('en-US') : 0
         }
         return data
     } catch (error) {
