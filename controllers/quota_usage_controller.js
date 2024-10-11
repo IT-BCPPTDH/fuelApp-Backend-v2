@@ -1,18 +1,22 @@
 const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 // const bulkData = require('../data-json/operator.json')
-const { formatYYYYMMDD, formatDateToDDMMYYYY } = require('../helpers/dateHelper');
 const { insertToOperator, getTotal, updateActive} = require('../query-service/quota_usage/quota_usage_service')
 const cron = require('node-cron');
-const { fetchUnitLV } = require('../helpers/httpHelper')
 const logger = require("../helpers/pinoLog");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
+const { getUnitLvProto } = require('../helpers/proto/master-data')
 
 async function bulkInsertQuotaDaily(){
     try{
         const today = new Date().toISOString().split('T')[0];
-        const unit = await fetchUnitLV()
-        const checkData = await getTotal(today)
+        const getUnit = await getUnitLvProto()
+        const unit = JSON.parse(getUnit.data)
+        const data = {
+            tanggal : today,
+            option: 'Daily'
+        }
+        const checkData = await getTotal(data)
         if(checkData.length !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -20,8 +24,8 @@ async function bulkInsertQuotaDaily(){
                 data:checkData
             }
         }else{
-            for (let index = 0; index < unit.data.length; index++) {
-                const element = unit.data[index];
+            for (let index = 0; index < unit.length; index++) {
+                const element = unit[index];
                 const inserted = await insertToOperator(element)
             }
             
@@ -62,8 +66,7 @@ cron.schedule('0 6 * * *', async () => {
 
 async function getAllData(Json) {
     try{
-        const data = formatYYYYMMDD(Json)
-        let result = await getTotal(data)
+        let result = await getTotal(Json)
         if(result){
             return {
                 status: HTTP_STATUS.OK,
@@ -135,9 +138,87 @@ async function getActiveData(params) {
     }
 }
 
+async function disableBus(params) {
+    try{
+        let result = await db.query(QUERY_STRING.inActiveBus, [params])
+        if(result.rows !== 0){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Succesfully Update data!',
+                data: result.rows
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        console.log(err)
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
+async function disableLV(params) {
+    try{
+        let result = await db.query(QUERY_STRING.inActiveLV, [params])
+        if(result.rows !== 0){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Succesfully Update data!',
+                data: result.rows
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        console.log(err)
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
+async function disableHLV(params) {
+    try{
+        let result = await db.query(QUERY_STRING.inActiveHLV, [params])
+        if(result.rows !== 0){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Succesfully Update data!',
+                data: result.rows
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        console.log(err)
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
 module.exports = {
     getAllData,
     bulkInsertQuotaDaily,
     updateData,
-    getActiveData
+    getActiveData,
+    disableBus,
+    disableLV,
+    disableHLV
 }
