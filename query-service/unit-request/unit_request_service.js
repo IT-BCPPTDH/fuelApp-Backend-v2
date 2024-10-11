@@ -14,8 +14,8 @@ const getSummaryUnitReq = async (params) => {
             totalAllUnit: queryTotal.rows[0].total ? queryTotal.rows[0].total_unit: 0,
             totalDay: queryShiftDay.rows ? queryShiftDay.rows[0].total_day : 0,
             totalUnitDay: queryShiftDay.rows ? queryShiftDay.rows[0].total_unit : 0,
-            totalNight:queryShiftNight.rows == null ? queryShiftNight.rows[0].total_night : 0,
-            totalUnitNight:queryShiftNight.rows == null ? queryShiftNight.rows[0].total_unit : 0  
+            totalNight:queryShiftNight.rows  ? queryShiftNight.rows[0].total_night : 0,
+            totalUnitNight:queryShiftNight.rows ? queryShiftNight.rows[0].total_unit : 0  
         }
         return data
     } catch (error) {
@@ -35,7 +35,7 @@ const insertUnitReq = async (data) => {
         let result = await db.query(QUERY_STRING.addQuota, params)
 
         if(data.unit_no.includes('LV') || data.unit_no.includes('HLV')){
-            const query = `UPDATE quota_usage SET additional = ? WHERE "unitNo" = ?`;
+            const query = `UPDATE quota_usage SET additional = $1 WHERE "unitNo" = $2`;
 
             const value = [quota_request, unit_no]
             const res = await db.query(query, value);

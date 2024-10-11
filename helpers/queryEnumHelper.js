@@ -205,7 +205,8 @@ const QUERY_STRING = {
     left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl."date"  = $1 and fl.station = $2`,
 
-    getAllQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false'`
+    getAllQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false'`,
+    getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "isActive" = 'true'`
 }
 
 module.exports = {
