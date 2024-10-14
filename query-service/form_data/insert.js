@@ -17,7 +17,7 @@ const postFormData = async (data) => {
         let result = await db.query(QUERY_STRING.postFormData, params)
 
         if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
-            const query = `UPDATE quota_usage SET used = ? WHERE "unitNo" = ?`;
+            const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
 
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit])
             if(existingData.rows.length > 0){
