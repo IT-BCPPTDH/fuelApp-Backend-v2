@@ -49,10 +49,27 @@ function formattedHHMM(hour) {
     return `${formattedHours}:${formattedMinutes}`;
 }
 
+const formatYYYYMMDDBefore = (date, interval) => {
+    const dateObj = new Date(date);
+  
+    // Kurangi 7 hari dari tanggal tersebut
+    dateObj.setDate(dateObj.getDate() - interval);
+    
+    // Format ulang ke 'YYYY-MM-DD'
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');  // Bulan dimulai dari 0
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    
+    resultDate = `${year}-${month}-${day}`;
+    return resultDate
+}
+
 module.exports ={
     formatYYYYMMDD,
     prevFormatYYYYMMDD,
     formatDateToDDMMYYYY,
     formatDateTimeToDDMMYYYY_HHMMSS,
-    formattedHHMM
+    formattedHHMM,
+    formatYYYYMMDDBefore,
+    formatYYYYMMDDBefore
 }
