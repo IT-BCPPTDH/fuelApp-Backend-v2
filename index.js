@@ -15,6 +15,7 @@ const adminDashboardStationRoutes = require('./routes/admin_dashboard_station_ro
 const adminDashboardDataRoutes = require('./routes/admin_dashboard_form_data_routes')
 const adminRequestQuotaRoutes = require('./routes/admin_request_quota_routes')
 const quotaUsageRoutes = require('./routes/quota_usage_routes')
+const downloadRoutes = require('./routes/admin_download_routes')
 
 // Cors Setup
 app.options('/*', (res, req) => {
@@ -48,6 +49,7 @@ adminDashboardDataRoutes(app)
 adminRequestQuotaRoutes(app)
 homeRoutes(app)
 quotaUsageRoutes(app)
+downloadRoutes(app)
 
 
 // Server Listener

@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY_HHMMSS } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, formatDateOption,formatDateToDDMMYYYY, formatDateTimeToDDMMYYYY_HHMMSS } = require('../../helpers/dateHelper');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
@@ -7,11 +7,11 @@ const getTotalStation = async (params) => {
     try {
         let data
         const dateNow = formatYYYYMMDD(params.tanggal)
+        const dateBefore = formatDateOption(params.option, dateNow)
         const station = params.station
-        const totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateNow, station])
-        const stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateNow, station])
-        const stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateNow, station])
-        console.log(stationShiftNight.rows)
+        const totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateBefore, dateNow, station])
+        const stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateBefore,dateNow, station])
+        const stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
         data = { 
             totalAllOpening : totalStation.rows[0].total_open ? totalStation.rows[0].total_open.toLocaleString('en-US') : 0,
             totalAllClosing :  totalStation.rows[0].total_close ? totalStation.rows[0].total_close.toLocaleString('en-US') : 0,
@@ -46,10 +46,10 @@ const getTotalStation = async (params) => {
 const getTableStation = async (params) => {
     try{
         const dateNow = formatYYYYMMDD(params.tanggal)
+        const dateBefore = formatDateOption(params.option, dateNow)
         const station = params.station
-        const getDataStations =  await db.query(QUERY_STRING.getShiftStation, [station, dateNow])
-        const loginData = await db.query(QUERY_STRING.getLogStation, [station, dateNow])
-
+        const getDataStations =  await db.query(QUERY_STRING.getShiftStation, [station, dateBefore, dateNow])
+        const loginData = await db.query(QUERY_STRING.getLogStation, [station, dateBefore, dateNow])
         const mergedData = getDataStations.rows.map(itemA => {
             const matchingItemB = loginData.rows.find(itemB => itemB.station === itemA.station
                 && itemB.jde_operator === itemA.fuelman_id);
