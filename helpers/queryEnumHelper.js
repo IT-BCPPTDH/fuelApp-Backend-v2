@@ -160,8 +160,8 @@ const QUERY_STRING = {
 
     getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
 
-    getHomeTotals : `select fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end, SUM(fl.opening_dip) as op_dip,
-    SUM(fl.opening_dip) as close_dip,
+    getHomeTotals : `select  fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end, max(fl.opening_dip) as op_dip,
+    max(fl.opening_dip) as close_dip,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive
@@ -170,7 +170,7 @@ const QUERY_STRING = {
     where fl.lkf_id = $1
     group by fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end`,
 
-    getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
+    getHomeTable: `select fd.from_data_id,fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
     fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
     where fd.lkf_id = $1`,
 
