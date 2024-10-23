@@ -60,20 +60,29 @@ const QUERY_STRING = {
     getAllLkfs : `SELECT fl.opening_dip AS total_opening FROM form_lkf fl WHERE fl."date" = $1 and fl.shift = 'Day'`,
 
     getTotals : `SELECT 
-        fl.date, 
-        fl.station, 
-        SUM(distinct fl.opening_dip) AS total_opening, 
-        SUM(distinct fl.closing_dip) AS total_closing,
-        SUM(distinct fl.close_data) As total_close_data,
-        fl.variant As total_variant,
-        COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
-        COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
-    FROM form_lkf fl
-    LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
-    WHERE fl.date = $1
-    GROUP BY fl.date, fl.station, fl.variant;`,
+    fl.date, 
+    fl.station, 
+    SUM(DISTINCT fl.opening_dip) AS total_opening, 
+    fl.variant AS total_variant,  
+    SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
+    SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
+    SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive,
+    SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc
+        FROM 
+            form_lkf fl
+        LEFT JOIN 
+            form_data fd ON fd.lkf_id = fl.lkf_id  
+        WHERE 
+            fl.lkf_id = $1  
+        GROUP BY 
+            fl.date, fl.station, fl.variant;
+
+`
+
+
+
+
+,
 
     getTotalBefores : `SELECT 
             fl.date, 
@@ -160,17 +169,34 @@ const QUERY_STRING = {
 
     getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
 
-    getHomeTotals : `select fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end, SUM(fl.opening_dip) as op_dip,
-    SUM(fl.opening_dip) as close_dip,
-    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
-    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive
-    from form_lkf fl 
-    join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl.lkf_id = $1
-    group by fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end`,
+    getHomeTotals : `SELECT 
+    fl.date, 
+    fl.fuelman_id, 
+    fl.shift, 
+    fl.station, 
+    fl.flow_meter_start, 
+    fl.flow_meter_end, 
+    MAX(fl.opening_dip) AS op_dip,
+    MAX(fl.opening_dip) AS close_dip,
+    SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
+    SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
+    SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive
+FROM 
+    form_lkf fl 
+LEFT JOIN 
+    form_data fd ON fd.lkf_id = fl.lkf_id 
+WHERE 
+    fl.lkf_id = $1
+GROUP BY 
+    fl.date, 
+    fl.fuelman_id, 
+    fl.shift, 
+    fl.station, 
+    fl.flow_meter_start, 
+    fl.flow_meter_end
+`,
 
-    getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
+    getHomeTable: `select fd.from_data_id,fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
     fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
     where fd.lkf_id = $1`,
 
