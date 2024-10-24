@@ -1,27 +1,29 @@
 const db = require('../../database/helper');
-const { formattedHeaders, formatDDMonthYYYY,formattedHHMM } = require('../../helpers/dateHelper');
+const { formattedHeaders, formatDDMonthYYYY,formattedHHMM,formatedDatesNames } = require('../../helpers/dateHelper');
 const logger = require('../../helpers/pinoLog');
-const { getEquipment, getFilterBanlaws } = require('../../helpers/proto/master-data');
+const { getEquipment, getFilterBanlaws, getMdElipse } = require('../../helpers/proto/master-data');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
+// const nodemailer = require('nodemailer');
 
 
 const getData = async(dateFrom, dateTo) => {
     try{
         const fetchData = await db.query(QUERY_STRING.getConsumtion, [dateFrom, dateTo])
         const uniqueNoUnits = [...new Set(fetchData.rows.map(item => item.no_unit))];
-        const fetchUnit = await getEquipment(uniqueNoUnits)
+        const fetchUnit = await getMdElipse(uniqueNoUnits)
         const unit = JSON.parse(fetchUnit.data)
+
         const dataUnit = unit
         .map((item) => ({
-            desc: item.usage,
-            unit_no: item.unit_no,
-            egi: item.brand,
-            owner: item.owner,
-            location: item.site
+            desc: item.equip_category ? item.equip_category : 'OTHERS',
+            unit_no: item.equip_no_unit ? item.equip_no_unit : 'OTHERS',
+            egi: item.equip_model_egi ? item.equip_model_egi : 'OTHERS',
+            owner: item.equip_owner_elipse ? item.equip_owner_elipse : 'OTHERS',
+            location: item.equip_position ? item.equip_position : 'PIT B'
         }))
         .sort((a, b) => {
-            const descA = a.desc || ""; 
-            const descB = b.desc || "";
+            const descA = a.location || ""; 
+            const descB = b.location || "";
             return descA.localeCompare(descB);
         });
 
@@ -38,6 +40,7 @@ const getData = async(dateFrom, dateTo) => {
             dataConsumtion : formattedData,
             dataUnit: dataUnit
         }
+
     }catch(error){
         logger.error(error)
         console.error('Error during update:', error);
@@ -49,19 +52,19 @@ const getFCShift = async(dateFrom, dateTo) => {
     try{
         const fetchData = await db.query(QUERY_STRING.getConsumtionShift, [dateFrom, dateTo])
         const uniqueNoUnits = [...new Set(fetchData.rows.map(item => item.no_unit))];
-        const fetchUnit = await getEquipment(uniqueNoUnits)
+        const fetchUnit = await getMdElipse(uniqueNoUnits)
         const unit = JSON.parse(fetchUnit.data)
         const dataUnit = unit
         .map((item) => ({
-            desc: item.usage,
-            unit_no: item.unit_no,
-            egi: item.brand,
-            owner: item.owner,
-            location: item.site
+            desc: item.equip_category ? item.equip_category : 'OTHERS',
+            unit_no: item.equip_no_unit ? item.equip_no_unit : 'OTHERS',
+            egi: item.equip_model_egi ? item.equip_model_egi : 'OTHERS',
+            owner: item.equip_owner_elipse ? item.equip_owner_elipse : 'OTHERS',
+            location: item.equip_position ? item.equip_position : 'PIT B'
         }))
         .sort((a, b) => {
-            const descA = a.desc || ""; 
-            const descB = b.desc || "";
+            const descA = a.location || ""; 
+            const descB = b.location || "";
             return descA.localeCompare(descB);
         });
 
@@ -90,19 +93,19 @@ const getFCHmkm = async(dateFrom, dateTo) => {
     try{
         const fetchData = await db.query(QUERY_STRING.getConsumtionAll, [dateFrom, dateTo])
         const uniqueNoUnits = [...new Set(fetchData.rows.map(item => item.no_unit))];
-        const fetchUnit = await getEquipment(uniqueNoUnits)
+        const fetchUnit = await getMdElipse(uniqueNoUnits)
         const unit = JSON.parse(fetchUnit.data)
         const dataUnit = unit
         .map((item) => ({
-            desc: item.usage,
-            unit_no: item.unit_no,
-            egi: item.brand,
-            owner: item.owner,
-            location: item.site
+            desc: item.equip_category ? item.equip_category : 'OTHERS',
+            unit_no: item.equip_no_unit ? item.equip_no_unit : 'OTHERS',
+            egi: item.equip_model_egi ? item.equip_model_egi : 'OTHERS',
+            owner: item.equip_owner_elipse ? item.equip_owner_elipse : 'OTHERS',
+            location: item.equip_position ? item.equip_position : 'PIT B'
         }))
         .sort((a, b) => {
-            const descA = a.desc || ""; 
-            const descB = b.desc || "";
+            const descA = a.location || ""; 
+            const descB = b.location || "";
             return descA.localeCompare(descB);
         });
 
@@ -189,9 +192,187 @@ const getKPC = async(dateFrom, dateTo) => {
     }
 }
 
+const getFCByOwner = async(dateFrom, dateTo) => {
+    try{
+        const fetchData = await db.query(QUERY_STRING.getFCOwn, [dateFrom, dateTo])
+        const uniqueNoUnits = [...new Set(fetchData.rows.map(item => item.no_unit))];
+        const fetchElipse = await getMdElipse(uniqueNoUnits)
+        const elipse = JSON.parse(fetchElipse.data)
+
+        const mergedData = fetchData.rows.map(item => {
+            const matchingData = elipse.find(data => data.equip_no_unit === item.no_unit);
+
+            if (matchingData) {
+              return { 
+                ...item,
+                tanggal: formatedDatesNames(item.formatted_date),
+                category: matchingData.equip_category,
+                owners: matchingData.equip_owner_elipse
+               };
+            }
+            return { 
+                ...item,
+                tanggal: formatedDatesNames(item.formatted_date),
+                category: "Others",
+            };
+        });
+
+        const summedOwner = mergedData.reduce((acc, item) => {
+            if (!['KPC', 'BACKCHARGE', 'Others'].includes(item.category)) {
+                const normalizedTanggal = item.tanggal.trim();
+                const normalizedOwners = item.owners.trim().toLowerCase(); 
+
+                const key = `${normalizedTanggal}-${normalizedOwners}`;
+
+                if (!acc[key]) {
+                    acc[key] = {
+                        tanggal: normalizedTanggal,
+                        owners: item.owners.trim(), 
+                        qty: 0
+                    };
+                }
+        
+                acc[key].qty += item.qty;
+            }
+        
+            return acc;
+        }, {});
+
+        const summedBackcharge = mergedData.reduce((acc, item) => {
+            if (['BACKCHARGE'].includes(item.category) && !['Others'].includes(item.category)) {
+                const key = `${item.tanggal}-${item.owners}`;
+        
+                if (!acc[key]) {
+                    acc[key] = {
+                        tanggal: item.tanggal,
+                        owners: item.owners,
+                        qty: 0
+                    };
+                }
+        
+                acc[key].qty += item.qty;
+            }
+        
+            return acc;
+        }, {});
+
+        const summedKpc = mergedData.reduce((acc, item) => {
+            if (['KPC'].includes(item.category)&& !['Others'].includes(item.category)) {
+                const key = `${item.tanggal}-${item.owners}`;
+        
+                if (!acc[key]) {
+                    acc[key] = {
+                        tanggal: item.tanggal,
+                        owners: item.owners,
+                        qty: 0
+                    };
+                }
+        
+                acc[key].qty += item.qty;
+            }
+        
+            return acc;
+        }, {});
+        
+        const owners = Object.values(summedOwner);
+        const backcharge = Object.values(summedBackcharge);
+        const kpc = Object.values(summedKpc);
+        
+        const result = {
+            owner: owners,
+            backcharge: backcharge,
+            kpc: kpc
+        }
+
+        return result
+    }catch(error){
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+}
+
+const getContentyMail = async(dateFrom, dateTo) => {
+    try{
+        const fetchData = await db.query(QUERY_STRING.getDataForMail, [dateFrom, dateTo])
+        const UnitsNosKPC = fetchData.rows.filter(item => item.type === 'Receipt KPC').map(item => item.station);
+        const UnitsNos = fetchData.rows.filter(item => item.type !== 'Receipt KPC').map(item => item.no_unit);
+        const fetchUnit = await getEquipment(UnitsNos)
+        const unit = JSON.parse(fetchUnit.data)
+        const fetchBanlaws = await getFilterBanlaws(UnitsNosKPC)
+        const banlaws = JSON.parse(fetchBanlaws.data)
+
+
+        const mergedData = fetchData.rows.map(item => {
+            const matchingData = banlaws.find(data => data.unit_elipse === String(item.station));
+            console.log(`Memeriksa: item.station = ${item.station}, matchingData.unit_elipse = ${matchingData ? matchingData.unit_elipse : 'Tidak ditemukan'}`);
+            if (matchingData) {
+                return {
+                    ...item,
+                    owner: matchingData.owner
+                };
+            }
+            return item;
+        });
+         
+        return mergedData
+    }catch(error){
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+}
+
+const bodyMail = () => {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: 'your-email@gmail.com',
+            pass: 'your-email-password',
+        },
+    });
+    // Buat objek email dengan HTML
+let mailOptions = {
+    from: 'your-email@gmail.com',
+    to: 'recipient-email@example.com',
+    subject: 'RECEIPT KPC',
+    html: `
+        <table style="border-collapse: collapse; width: 100%; color: white;">
+            <tr>
+                <th style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: left;">RECEIPT KPC</th>
+                <th style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: left;">Date 16 October 2024</th>
+            </tr>
+            <tr>
+                <td style="background-color: #00008B; border: 1px solid black; padding: 8px;">PT. Madhani Talata Nusantara</td>
+                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: right;">95,041</td>
+            </tr>
+            <tr>
+                <td style="background-color: #00008B; border: 1px solid black; padding: 8px;">PT. Darma Henwa Tbk</td>
+                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: right;">129,599</td>
+            </tr>
+            <tr>
+                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; font-weight: bold;">Grand Total</td>
+                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: right; font-weight: bold;">224,640</td>
+            </tr>
+        </table>
+    `,
+    };
+
+    // Kirim email
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log('Error saat mengirim email:', error);
+        } else {
+            console.log('Email terkirim: ' + info.response);
+        }
+    });    
+}
+
 module.exports = {
     getData,
     getFCShift,
     getFCHmkm,
-    getKPC
+    getKPC,
+    getContentyMail,
+    getFCByOwner
 }

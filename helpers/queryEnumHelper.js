@@ -222,13 +222,13 @@ const QUERY_STRING = {
         TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date
     FROM form_lkf fl 
     JOIN form_data fd ON fl.lkf_id = fd.lkf_id 
-    WHERE  fl."date" BETWEEN $1 AND $2;`,
+    WHERE  fl."date" BETWEEN $1 AND $2 and fd."type" ='Issued';`,
 
     getConsumtion: `SELECT TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
     fd.no_unit, SUM(fd.qty) AS total_qty
     FROM form_lkf fl 
     JOIN form_data fd ON fl.lkf_id = fd.lkf_id 
-    WHERE fl."date" BETWEEN $1 AND $2 
+    WHERE fl."date" BETWEEN $1 AND $2 and fd."type" ='Issued'
     AND fl.shift IN ('Day', 'Night') 
     GROUP BY fl."date", fd.no_unit; `,
 
@@ -236,14 +236,24 @@ const QUERY_STRING = {
     fd.no_unit,fl.shift, SUM(fd.qty) AS total_qty
     FROM form_lkf fl 
     JOIN form_data fd ON fl.lkf_id = fd.lkf_id 
-    WHERE fl."date" BETWEEN $1 AND $2 
-    GROUP BY fl."date",fl.shift, fd.no_unit;`,
+    WHERE fl."date" BETWEEN $1 AND $2 and fd."type" ='Issued'
+    GROUP BY fl."date",fl.shift, fd.no_unit ;`,
 
     getFCKpc: `select TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
     fl.shift,fl.station,fl.fuelman_id, fd.name_operator, fd.qty, fl.opening_dip,  fl.closing_dip, fd."start", fd."end" 
     from form_lkf fl 
     join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl."date" between $1 and $2 and fd."type" = 'Receipt KPC'`
+    where fl."date" between $1 and $2 and fd."type" = 'Receipt KPC'`,
+
+    getFCOwn: `select TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
+    fd.no_unit, fd.qty
+    from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl."date" between $1 and $2 and fd."type" ='Issued'`, 
+     
+    getDataForMail : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl."date" between $1 and $2`
 }
 
 module.exports = {
