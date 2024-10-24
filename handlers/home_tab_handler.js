@@ -1,4 +1,5 @@
-const { getSummaryData, getTable } = require("../controllers/home_controller");
+const { getSummaryData, getTable,getSummaryTab} = require("../controllers/home_controller");
+
 const {handleResponseParams, handleResponseJsonAdmin, handleResponseJsonOperator} = require("./httpResponseHandler");
 
 async function handleHomeSummary(res, req) {
@@ -8,9 +9,14 @@ async function handleHomeSummary(res, req) {
 async function handleHomeTable(res, req) {
     await handleResponseParams(res, req, getTable, 1 )
 }
+async function handleHomeTab(res, req) {
+    await handleResponseParams(res, req, getSummaryTab,1)
+    
+}
 
 
 module.exports = {
     handleHomeSummary,
-    handleHomeTable
+    handleHomeTable,
+    handleHomeTab
 }

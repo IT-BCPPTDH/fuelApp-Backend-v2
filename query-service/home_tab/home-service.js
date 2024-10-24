@@ -4,7 +4,7 @@ const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
 const getTotal = async (params) => {
     try {
-        const result = await db.query(QUERY_STRING.getHomeTotals, [params]);
+        const result = await db.query(QUERY_STRING.getTotals, [params]);
         
 
         if (result.rows && result.rows.length > 0) {
@@ -21,6 +21,29 @@ const getTotal = async (params) => {
 };
 
 
+const getHomeTab = async (params) => {
+    try {
+        // Assuming `params.lkf_id` is the parameter to be used in the query
+        const result = await db.query(QUERY_STRING.getHomeTotals, [params]); // Correctly passing parameter
+
+        console.log("data", result.rows); // Log rows instead of whole result
+
+        if (result.rows && result.rows.length > 0) {
+            return result.rows; // Return rows if found
+        } else {
+            console.warn('No rows found for the given parameters:', params);
+            return []; // Return empty array if no data
+        }
+        
+    } catch (error) {
+        logger.error(error);
+        console.error('Error during database query:', error);
+        throw new Error('Database query failed'); 
+    }
+};
+
+
+
 const getTables = async(params) => {
     try {
         const result = await db.query(QUERY_STRING.getHomeTable, [params])
@@ -34,5 +57,7 @@ const getTables = async(params) => {
 
 module.exports = {
     getTotal,
-    getTables
+    getTables,
+    getHomeTab,
+
 }
