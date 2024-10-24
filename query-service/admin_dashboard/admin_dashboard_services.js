@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY, formatDateOption } = require('../../helpers/dateHelper');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
@@ -7,9 +7,10 @@ const getTotalDashboard = async (params) => {
     try {
         let result
         const dateNow = formatYYYYMMDD(params.tanggal)
+        const dateBefore = formatDateOption(params.option, dateNow)
         result = await filterData(params.tanggal, false)
-        let dataSonding = await db.query(QUERY_STRING.getTotalSonding,[dateNow])
-        let dataType = await db.query(QUERY_STRING.getTotalType,[dateNow])
+        let dataSonding = await db.query(QUERY_STRING.getTotalSonding,[dateBefore, dateNow])
+        let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
         const data = { 
             prevSonding : result.dataClosingPrev ? result.dataClosingPrev.toLocaleString('en-US') : 0,
             openSonding : dataSonding.rows[0].total_opening ? dataSonding.rows[0].total_opening.toLocaleString('en-US') : 0,
@@ -34,7 +35,8 @@ const getTableDashboard = async (params) => {
     try{
         let result
         const dateNow = formatYYYYMMDD(params.tanggal)
-        const getDataStations =  await db.query(QUERY_STRING.getTotals, [dateNow])
+        const dateBefore = formatDateOption(params.option, dateNow)
+        const getDataStations =  await db.query(QUERY_STRING.getTotals, [dateBefore, dateNow])
         result = await filterData(params.tanggal, true)
         const mergedData = (getDataStations?.rows || []).map(itemA => {
             const matchingItemB = Array.isArray(result) 

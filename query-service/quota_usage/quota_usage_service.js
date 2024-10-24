@@ -4,7 +4,7 @@ const knexConfig = require('../../knexfile');
 const dbKnex = knex(knexConfig);
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper')
-const { formatDateToDDMMYYYY,formatYYYYMMDD, formatYYYYMMDDBefore } = require('../../helpers/dateHelper')
+const { formatDateOption,formatYYYYMMDD,formatDateToDDMMYYYY } = require('../../helpers/dateHelper')
 
 const insertToOperator = async (dataJson) => {
     try {
@@ -75,17 +75,8 @@ const insertToOperator = async (dataJson) => {
 
 const getTotal = async (params)  => {
     try {
-        let dateBefore
         const dateNow = formatYYYYMMDD(params.tanggal)
-        if(params.option == "Daily"){
-            dateBefore = dateNow
-        }else if(params.option == "Weekly"){
-            const resultDate = formatYYYYMMDDBefore(dateNow, 7)
-            dateBefore = resultDate
-        }else{
-            const resultDate = formatYYYYMMDDBefore(dateNow, 30)
-            dateBefore = resultDate
-        }
+        const dateBefore = formatDateOption(params.option, dateNow)
         let data = await db.query(QUERY_STRING.getAllQuota,[dateBefore, dateNow])
         const formattedResult = data.rows.map((item, index) => ({
             ...item,

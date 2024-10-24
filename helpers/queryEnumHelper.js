@@ -27,8 +27,8 @@ const QUERY_STRING = {
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
-    getTotalSonding: `select SUM(DISTINCT fl.opening_dip) as total_opening from form_lkf fl 
-    where fl."date" = $1 and shift = 'Day'`,
+    getTotalSonding: `select SUM(fl.opening_dip) as total_opening from form_lkf fl 
+    where fl."date" between $1 and $2 and shift = 'Day'`,
 
     getTotalType : `select SUM(distinct fl.closing_dip) as total_closing,
     SUM(distinct fl.close_data) As total_close_data,
@@ -39,7 +39,7 @@ const QUERY_STRING = {
     COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
     from form_lkf fl
     left join form_data fd on fd.lkf_id  = fl.lkf_id 
-    where fl."date" = $1`,
+    where fl."date" between $1 and $2`,
 
     // getPrevious : `SELECT sum(fl.opening_sonding) AS total_opening, 
     // SUM(fl.closing_sonding) AS total_closing,
@@ -75,14 +75,7 @@ const QUERY_STRING = {
         WHERE 
             fl.lkf_id = $1  
         GROUP BY 
-            fl.date, fl.station, fl.variant;
-
-`
-
-
-
-
-,
+            fl.date, fl.station, fl.variant;`,
 
     getTotalBefores : `SELECT 
             fl.date, 
@@ -131,10 +124,10 @@ const QUERY_STRING = {
     getShiftStation: `SELECT 
         fl.lkf_id, fl."date", fl.shift, fl.station, fl.fuelman_id, fl."status", fl.time_opening
     FROM form_lkf fl
-    WHERE fl.station = $1 AND fl."date" = $2`,
+    WHERE fl.station = $1 AND fl."date" between $2 and $3`,
 
     getLogStation: `select * from fuelman_log fl 
-    where station = $1 AND "date" = $2`,
+    where station = $1 AND "date" between $2 and $3`,
 
     getAllFormData : `select SUM(distinct fl.opening_dip) as total_open, 
     SUM(distinct fl.closing_dip) as total_close, 
@@ -169,36 +162,24 @@ const QUERY_STRING = {
 
     getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
 
-    getHomeTotals : `SELECT 
-    fl.date, 
-    fl.fuelman_id, 
-    fl.shift, 
-    fl.station, 
-    fl.flow_meter_start, 
-    fl.flow_meter_end, 
-    MAX(fl.opening_dip) AS op_dip,
-    MAX(fl.opening_dip) AS close_dip,
-    SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
-    SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
-    SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive
-FROM 
-    form_lkf fl 
-LEFT JOIN 
-    form_data fd ON fd.lkf_id = fl.lkf_id 
-WHERE 
-    fl.lkf_id = $1
-GROUP BY 
-    fl.date, 
-    fl.fuelman_id, 
-    fl.shift, 
-    fl.station, 
-    fl.flow_meter_start, 
-    fl.flow_meter_end
-`,
 
-    getHomeTable: `select fd.from_data_id,fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
-    fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
+    getHomeTotals : `select fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end, SUM(fl.opening_dip) as op_dip,
+    SUM(fl.opening_dip) as close_dip,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive
+    from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl.lkf_id = $1
+    group by fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end`,
+
+    // getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
+    // fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
+    // where fd.lkf_id = $1`,
+
+    getHomeTable: `select * from form_data fd 
     where fd.lkf_id = $1`,
+    
 
     getStationShiftDay: `select  SUM(distinct fl.opening_dip) as total_open, fl.shift, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
@@ -208,7 +189,7 @@ GROUP BY
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.shift = 'Day' and fl.station = $2
+    where fl."date" between $1 and $2 and fl.shift = 'Day' and fl.station = $3
     group by fl.shift`,
 
     getStationShiftNigth: `select  SUM(distinct fl.opening_dip) as total_open, fl.shift, SUM(distinct fl.closing_dip) as total_close,
@@ -219,7 +200,7 @@ GROUP BY
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.shift = 'Night' and fl.station = $2
+    where fl."date"  between $1 and $2 and fl.shift = 'Night' and fl.station = $3
     group by fl.shift`,
 
     getAllDataStation :`select SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
@@ -230,13 +211,52 @@ GROUP BY
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
     left join form_data fd on fl.lkf_id = fd.lkf_id 
-    where fl."date"  = $1 and fl.station = $2`,
+    where fl."date"  between $1 and $2 and fl.station = $3`,
 
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
     getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "isActive" = 'true'`,
     inActiveBus : `UPDATE quota_usage SET "isActive" = false WHERE "modelUnit" = 'BUS' and "date" = $1`,
     inActiveLV : `UPDATE quota_usage SET "isActive" = false WHERE "modelUnit" = 'LV' and "date" = $1`,
     inActiveHLV : `UPDATE quota_usage SET "isActive" = false WHERE "modelUnit" = 'HLV' and "date" = $1`,
+
+    listStasion: `SELECT station from form_lkf where "date" between $1 and $2 group by station`,
+    
+    getConsumtionAll: `SELECT fd.no_unit, fd.qty, fl.shift, fd.hm_km,
+        TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date
+    FROM form_lkf fl 
+    JOIN form_data fd ON fl.lkf_id = fd.lkf_id 
+    WHERE  fl."date" BETWEEN $1 AND $2 and fd."type" ='Issued';`,
+
+    getConsumtion: `SELECT TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
+    fd.no_unit, SUM(fd.qty) AS total_qty
+    FROM form_lkf fl 
+    JOIN form_data fd ON fl.lkf_id = fd.lkf_id 
+    WHERE fl."date" BETWEEN $1 AND $2 and fd."type" ='Issued'
+    AND fl.shift IN ('Day', 'Night') 
+    GROUP BY fl."date", fd.no_unit; `,
+
+    getConsumtionShift: `SELECT TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
+    fd.no_unit,fl.shift, SUM(fd.qty) AS total_qty
+    FROM form_lkf fl 
+    JOIN form_data fd ON fl.lkf_id = fd.lkf_id 
+    WHERE fl."date" BETWEEN $1 AND $2 and fd."type" ='Issued'
+    GROUP BY fl."date",fl.shift, fd.no_unit ;`,
+
+    getFCKpc: `select TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
+    fl.shift,fl.station,fl.fuelman_id, fd.name_operator, fd.qty, fl.opening_dip,  fl.closing_dip, fd."start", fd."end" 
+    from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl."date" between $1 and $2 and fd."type" = 'Receipt KPC'`,
+
+    getFCOwn: `select TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
+    fd.no_unit, fd.qty
+    from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl."date" between $1 and $2 and fd."type" ='Issued'`, 
+     
+    getDataForMail : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl."date" between $1 and $2`
 }
 
 module.exports = {

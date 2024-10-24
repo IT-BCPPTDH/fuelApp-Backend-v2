@@ -9,6 +9,9 @@ service Greeter {
   rpc getTruckFactor (Empty) returns (TFRes) {};
   rpc getUnit (arr) returns (TFRes) {};
   rpc getUnitLvProto (arr) returns (TFRes) {};
+  rpc getEquipment (arr) returns (TFRes) {};
+  rpc getFilterBanlaws (arr) returns (TFRes) {};
+  rpc getMdElipse (arr) returns (TFRes) {};
 }
 
 message Empty {}
