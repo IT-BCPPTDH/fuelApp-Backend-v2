@@ -16,7 +16,7 @@ const QUERY_STRING = {
     where no_unit = $1
     ORDER BY date_trx Desc LIMIT 1;`, 
 
-    getExistingQuota : `select * from quota_usage where unitNo = $1 and "isDelete" = false`,
+    getExistingQuota : `select * from quota_usage where "unitNo" = $1 and "isDelete" = false`,
 
     getPreviousData: `select * from form_lkf fl where fl.station = $1
     ORDER BY shift DESC LIMIT 1 OFFSET 1`, 
@@ -60,20 +60,22 @@ const QUERY_STRING = {
     getAllLkfs : `SELECT fl.opening_dip AS total_opening FROM form_lkf fl WHERE fl."date" = $1 and fl.shift = 'Day'`,
 
     getTotals : `SELECT 
-        fl.date, 
-        fl.station, 
-        SUM(distinct fl.opening_dip) AS total_opening, 
-        SUM(distinct fl.closing_dip) AS total_closing,
-        SUM(distinct fl.close_data) As total_close_data,
-        fl.variant As total_variant,
-        COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
-        COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
-        COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
-    FROM form_lkf fl
-    LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
-    WHERE fl.date between $1 and $2
-    GROUP BY fl.date, fl.station, fl.variant;`,
+    fl.date, 
+    fl.station, 
+    SUM(DISTINCT fl.opening_dip) AS total_opening, 
+    fl.variant AS total_variant,  
+    SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
+    SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
+    SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive,
+    SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc
+        FROM 
+            form_lkf fl
+        LEFT JOIN 
+            form_data fd ON fd.lkf_id = fl.lkf_id  
+        WHERE 
+            fl.lkf_id = $1  
+        GROUP BY 
+            fl.date, fl.station, fl.variant;`,
 
     getTotalBefores : `SELECT 
             fl.date, 
@@ -159,6 +161,7 @@ const QUERY_STRING = {
     where ftr."date" = $1 and ftr.shift = 'Night'`,
 
     getAllReq:`select * from form_table_request ftr where ftr."date" = $1`,
+
 
     getHomeTotals : `select fl.date, fl.fuelman_id, fl.shift, fl.station, fl.flow_meter_start, fl.flow_meter_end, SUM(fl.opening_dip) as op_dip,
     SUM(fl.opening_dip) as close_dip,
