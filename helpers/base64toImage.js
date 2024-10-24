@@ -3,20 +3,25 @@ const path = require('path');
 
 const base64ToImageSign = (base64String) => {
     const timestamp = Date.now();
-    const currName = Math.floor(Math.random() * 1000); 
-    // let currName = Math.floor(Date.now() / 1000);
-    // console.log(timestamp)
-    let name = timestamp+'-'+currName+'.png'
+    const currName = Math.floor(Math.random() * 1000);
+    let name = `${timestamp}-${currName}.png`;
 
-    const outputDirectory = path.join(__dirname,`../../assets/signature/${name}`)
-    const base64Data = base64String.split(',')[1];
+    const outputDirectory = path.join(__dirname, '../../assets/signature');
+    const outputFilePath = path.join(outputDirectory, name);
     
-    const buffer = Buffer.from(base64Data?base64Data:base64String, 'base64');
+    // Check if the directory exists, if not create it
+    if (!fs.existsSync(outputDirectory)) {
+        fs.mkdirSync(outputDirectory, { recursive: true });
+    }
 
-    fs.writeFileSync(outputDirectory, buffer, 'binary');
+    const base64Data = base64String.split(',')[1];
+    const buffer = Buffer.from(base64Data ? base64Data : base64String, 'base64');
 
-    return name
-}
+    fs.writeFileSync(outputFilePath, buffer, 'binary');
+
+    return name;
+};
+
 
 const base64ToImageFlow = (base64String) => {
     const timestamp = Date.now();

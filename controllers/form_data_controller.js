@@ -47,6 +47,7 @@ async function adminUpdateData(data) {
 }
 
 async function getFormDataPrev(data) {
+    console.log(data)
     try{
         let result = await getPrevious(data)
         if(result.length > 0 ){
