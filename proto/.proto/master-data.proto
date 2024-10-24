@@ -11,6 +11,7 @@ service Greeter {
   rpc getUnitLvProto (arr) returns (TFRes) {};
   rpc getEquipment (arr) returns (TFRes) {};
   rpc getFilterBanlaws (arr) returns (TFRes) {};
+  rpc getMdElipse (arr) returns (TFRes) {};
 }
 
 message Empty {}

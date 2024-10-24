@@ -3,12 +3,14 @@ const db = require('../database/helper')
 const logger = require("../helpers/pinoLog");
 const path = require('path');
 const fs = require('fs');
+const cron = require('node-cron');
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
 const { formatYYYYMMDD, formatedDatesYYYYMMDD, formattedHHMM, formatedMonth, 
     getFirstDate, formatedDatesNames,formatDateMMYYYY } = require('../helpers/dateHelper')
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { getTableDashboard } = require('../query-service/admin_dashboard/admin_dashboard_services');
-const { getData, getFCShift, getFCHmkm,getKPC } = require('../query-service/downloads/download_services');
+const { getData, getFCShift, getFCHmkm,getKPC, 
+    getContentyMail, getFCByOwner } = require('../query-service/downloads/download_services');
 
 
 const generateExcel = (data, headers, fileName) => {
@@ -1083,7 +1085,6 @@ const DailyConsumtion = async(data) => {
         const dateTill = formatYYYYMMDD(data.untilDate)
         const dateFrom = getFirstDate(dateTill)
 
-        
         const title = ['FUEL ISSUED DAILY']
         const headersOne = [`Fuel Consumtion - ${formatDateMMYYYY(data.untilDate)}`];
         const headersTwo = ['DESCRIPTION', 'EQUIPMENT', 'OWNER', 'LOCATION', 'TOTAL'];
@@ -1091,7 +1092,7 @@ const DailyConsumtion = async(data) => {
 
         let result, fileNames
         if(data.option == 'Consumtion'){
-            fileNames = `Fuel-Consumtion-${formatedDatesNames(data.untilDate)}.xlsx`
+            fileNames = `Fuel-Consumption-${formatedDatesNames(data.untilDate)}.xlsx`
             result = await getData(dateFrom, dateTill)
             generateConsumtion(title, headersOne, headersTwo, headersThree, result, fileNames)
         }else if(data.option == 'Shift'){
@@ -1111,12 +1112,16 @@ const DailyConsumtion = async(data) => {
             'OWNER', 'Unit Banlaw', 'PIN BANLAW'];
             generateByReceipt(titles, headers, result, fileNames)
         }else{
-            console.log("Owner")
+            fileNames = `FC-By-Owner-${formatedDatesNames(data.untilDate)}.xlsx`
+            result = await getFCByOwner(dateFrom, dateTill)
+
+            generateByOwner(result, fileNames)
         }
 
         return {
             status: HTTP_STATUS.OK,
-            link: fileNames
+            link: fileNames,
+            res: result
         }
     }catch(error){
         logger.error(error)
@@ -1265,9 +1270,8 @@ const generateConsumtion = (title, headersOne, headersTwo, headersThree, rest, f
             fgColor: { argb: '050580' }, 
         };
         cell.font = { 
-            bold: true,
             color: {argb : 'ffffff'},
-            size: 8
+            size: 11
         };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.width = 15;
@@ -1833,9 +1837,19 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
 
     const uniqueDates = [...new Set(rest.dataConsumtion.map(item => item.dates))];
 
+    function getExcelColumnName(index) {
+        let columnName = '';
+        while (index >= 0) {
+            columnName = String.fromCharCode((index % 26) + 65) + columnName;
+            index = Math.floor(index / 26) - 1;
+        }
+        return columnName;
+    }
+
     uniqueDates.forEach((date, index) => {
-        const startCol = String.fromCharCode(71 + index * 4);
-        const endCol = String.fromCharCode(74 + index * 4); 
+        const startCol = getExcelColumnName(6 + index * 4);
+        const endCol = getExcelColumnName(9 + index * 4); 
+        // console.log(startCol, endCol)
         sheet.mergeCells(`${startCol}4:${endCol}4`);
         const cell = sheet.getCell(`${startCol}4`);
         cell.value = date;
@@ -1851,8 +1865,8 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
         };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
 
+        sheet.mergeCells(`${startCol}5:${getExcelColumnName(7 + index * 4 )}5`); 
         
-        sheet.mergeCells(`${startCol}5:${String.fromCharCode(startCol.charCodeAt(0) + 1)}5`); 
         const dayShiftCell = sheet.getCell(`${startCol}5`);
         dayShiftCell.value = 'D';
         dayShiftCell.fill = {
@@ -1865,8 +1879,8 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
         };
         dayShiftCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-        sheet.mergeCells(`${String.fromCharCode(startCol.charCodeAt(0) + 2)}5:${endCol}5`); 
-        const nightShiftCell = sheet.getCell(`${String.fromCharCode(startCol.charCodeAt(0) + 2)}5`);
+        sheet.mergeCells(`${getExcelColumnName(8 + index * 4 )}5:${getExcelColumnName(9 + index * 4 )}5`); 
+        const nightShiftCell = sheet.getCell(`${getExcelColumnName(9 + index * 4 )}5`);
         nightShiftCell.value = 'N';
         nightShiftCell.fill = {
             type: 'pattern',
@@ -1878,7 +1892,10 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
         };
         nightShiftCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-        // Mengatur header Qty dan HM pada baris 6
+        console.log(`${getExcelColumnName(6 + index * 2 )}6`)
+        console.log(index)
+
+        // // Mengatur header Qty dan HM pada baris 6
         const qtyCol = sheet.getCell(`${startCol}6`);
         qtyCol.value = 'Qty';
         qtyCol.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -2231,11 +2248,271 @@ const generateByReceipt = (title, header, data, fileName) => {
     });
 }
 
+const renderTable = (title, data, totalQty, sheet, startRow) => {
+    const groupedData = {};
+    data.forEach(({ tanggal, owners, qty }) => {
+        if (!groupedData[owners]) {
+            groupedData[owners] = {};
+        }
+        if (!groupedData[owners][tanggal]) {
+            groupedData[owners][tanggal] = 0;
+        }
+        groupedData[owners][tanggal] += qty;
+    });
+    const sortedOwners = Object.keys(groupedData).sort((a, b) => b.localeCompare(a));
+
+    let headerRow;
+     const uniqueDates = [...new Set(data.map(item => item.tanggal))].sort((a, b) => new Date(a) - new Date(b));
+    if(title == 'Owner'){
+        headerRow = sheet.insertRow(startRow, ['', title, ...uniqueDates, 'Summary', 'Average']); 
+    }else{
+        console.log(uniqueDates)
+        const headerRowValues = ['', title, ...Array(uniqueDates.length).fill(''), '', ''];
+        headerRow = sheet.insertRow(startRow, headerRowValues);
+        sheet.mergeCells(headerRow.number, 3, headerRow.number, uniqueDates.length + 1);
+    }
+    headerRow.eachCell((cell, colNumber) => {
+        if(colNumber > 1) {
+            cell.alignment = {
+                horizontal: 'center',
+                vertical: 'middle',
+            };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'b4dbeb' } 
+            };
+            cell.font = {
+                bold : true,
+                size: 10
+            },
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        }
+    });
+
+    
+    const totals = new Array(uniqueDates.length).fill(0);
+    let totalAvg = [];
+
+    // Menambahkan data ke sheet tanpa looping owner yang sama
+    let summary, average
+    sortedOwners.forEach((ownerName) => {
+        const rowData = ['', ownerName]; 
+
+        // Menambahkan data qty berdasarkan tanggal
+        uniqueDates.forEach((date, index) => {
+            const qty = groupedData[ownerName][date] || '-';
+            rowData.push(qty);
+
+            // Jika qty adalah angka, tambahkan ke total untuk kolom tersebut
+            if (qty !== '-') {
+                totals[index] += qty;
+            }
+        });
+
+        // Menghitung Summary dan Average
+        const quantities = rowData.slice(2).filter(val => val !== '-').map(Number); 
+        summary = quantities.reduce((acc, val) => acc + val, 0);
+        average = summary / totalQty * 100
+        totalAvg.push(parseFloat(average.toFixed(2)))
+       
+        // Menambahkan Summary dan Average ke rowData
+        rowData.push(summary);
+        rowData.push(average.toFixed(2) + '%');
+
+        // Tambahkan row ke sheet satu kali
+        const excelRow = sheet.addRow(rowData);
+
+        // Format lebar kolom dan gaya cell
+        rowData.forEach((cell, colIndex) => {
+            const currentCell = excelRow.getCell(colIndex + 1);
+            const column = sheet.getColumn(colIndex + 1);
+            const cellTextLength = cell ? cell.toString().length : 10;
+            const currentWidth = column.width || 10;
+            const desiredWidth = Math.max(cellTextLength + 5, currentWidth);
+            column.width = desiredWidth;
+
+            currentCell.alignment = { vertical: 'middle', horizontal: 'right' };
+            currentCell.font = { size: 10 };
+            
+            if(colIndex == 1){
+                currentCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                currentCell.font = { size: 10 };
+            }
+
+            // Menambahkan border
+            if(colIndex >= 1){
+                currentCell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            }
+            
+        });
+    });
+
+    const totalRow = ['', 'Total'];
+
+    totals.forEach((total) => {
+        totalRow.push(total);
+    });
+
+    const grandTotal = totals.reduce((acc, val) => acc + val, 0);
+    const averageTotal = grandTotal / totalQty * 100
+
+    totalRow.push(grandTotal);
+    totalRow.push(parseFloat(averageTotal.toFixed(2)) + '%');
+
+    // Tambahkan baris Total ke sheet
+    const totalExcelRow = sheet.addRow(totalRow);
+
+    totalRow.forEach((cell, colIndex) => {
+        const currentCell = totalExcelRow.getCell(colIndex + 1);
+        if(colIndex > 1) { 
+            currentCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        }else{
+            currentCell.alignment = { vertical: 'middle', horizontal: 'left' }
+        }
+        
+        currentCell.font = { size: 10, bold: true };
+
+        if(colIndex >= 1){
+            currentCell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        } 
+    });
+
+    const rows = startRow + sortedOwners.length + 3
+
+    return {totalRow: rows}
+}
+
+
+const generateByOwner = ( data, fileName) => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Sheet1");
+    const startRow = 2;
+
+    const totalOwner = data.owner.reduce((accumulator, current) => accumulator + current.qty, 0);
+    const totalBackcharge = data.backcharge.reduce((accumulator, current) => accumulator + current.qty, 0);
+    const totalKpc = data.kpc.reduce((accumulator, current) => accumulator + current.qty, 0);
+    const jumlah = totalOwner + totalBackcharge + totalKpc 
+
+    let title = 'Owner'
+    const tableOwner = renderTable(title, data.owner, jumlah,  sheet, startRow);
+    
+    
+    title = 'Backcharge'
+    const tableBack = renderTable(title, data.backcharge, jumlah, sheet, tableOwner.totalRow)
+
+    title = 'KPC'
+    renderTable(title, data.kpc, jumlah, sheet, tableBack.totalRow)
+
+    const createFile = async (outputPath) => {
+        return await workbook.xlsx.writeFile(outputPath)
+            .then((file) => {
+                return true
+            })
+            .catch((error) => {
+                console.error('Gagal menyimpan file Excel:', error);
+            });
+    }
+
+    const outputPath = path.join(__dirname + '../../download', fileName);
+    return new Promise(async (resolve, reject) => {
+        try {
+            const exists = fs.existsSync(outputPath)
+
+            if (exists) {
+                fs.unlink(outputPath, async (err) => {
+                    if (err) {
+                        console.error(err);
+                        reject(err);
+                    } else {
+                        const fileDownload = await createFile(outputPath);
+                        if (fileDownload) {
+                            resolve(fileName);
+                        } else {
+                            resolve(false);
+                        }
+                    }
+                });
+            } else {
+                const fileDownload = await createFile(outputPath);
+                if (fileDownload) {
+                    resolve(fileName);
+                } else {
+                    resolve(false);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            reject(err);
+        }
+    });
+}
+
+const sentMail = async(data) => {
+    try{
+        // const dateTill = formatYYYYMMDD(data)
+        // const dateFrom = getFirstDate(dateTill)
+
+        const dateFrom = '2024-10-03'
+        const dateTill = '2024-10-03'
+        const result = await getContentyMail(dateFrom, dateTill)
+        return {
+            status: HTTP_STATUS.OK,
+            link: result
+        }
+    }catch(error){
+        logger.error(error)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${error}`,
+        };
+    }
+}
+
+// cron.schedule('0 8 * * *', async () => {
+// cron.schedule('*/10 * * * * *', async () => {
+//   console.log("Sending auto report...");
+
+//   try {
+//     const today = new Date();
+//     today.setDate(today.getDate() - 1);
+//     const yesterday = today.toISOString().split('T')[0];
+//     const data = await sentMail(yesterday);
+//     console.log("Done sending mail!");
+//     return {
+//         status:HTTP_STATUS.OK,
+//         message: "Successfully sending mail!"
+//     }; 
+//   } catch (error) {
+//     logger.error(err)
+//     return {
+//         status:HTTP_STATUS.BAD_REQUEST,
+//         message: "Something wrong with this: ", error
+//     }; 
+//   }
+// });
+
 module.exports = {
     downloadReportLkf,
     downloadHomeStation,
     downloadLkfDetailedLkf,
     downloadLkfElipse,
-    DailyConsumtion
+    DailyConsumtion,
+    sentMail
 }
 

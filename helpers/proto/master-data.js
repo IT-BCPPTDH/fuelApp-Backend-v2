@@ -36,8 +36,21 @@ async function getFilterBanlaws(data){
     })
 }
 
+async function getMdElipse(data){
+    return new Promise((resolve,reject)=>{
+        clientMasterData.getMdElipse({data:data},(err, response) =>{
+            if(!err){
+                resolve(response)
+            }else{
+                reject(err)
+            }
+        } )  
+    })
+}
+
 module.exports = {
     getUnitLvProto,
     getEquipment,
-    getFilterBanlaws
+    getFilterBanlaws,
+    getMdElipse
 }
