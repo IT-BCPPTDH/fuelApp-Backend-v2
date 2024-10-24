@@ -1,6 +1,6 @@
 const logger = require("../helpers/pinoLog");
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
-const {getTotal,  getTables} = require("../query-service/home_tab/home-service")
+const {getTotal,  getTables, getHomeTab} = require("../query-service/home_tab/home-service")
 
 async function getSummaryData(data) {
     try{
@@ -25,6 +25,35 @@ async function getSummaryData(data) {
           };
     }
 }
+
+
+async function getSummaryTab(data) {
+    try{
+        let result = await getHomeTab(data)
+        console.log("t",result)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Succesfully Fetch!',
+                data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
+
+
 
 async function getTable(data) {
     try{
@@ -52,5 +81,6 @@ async function getTable(data) {
 
 module.exports = {
     getSummaryData,
-    getTable
+    getTable,
+    getSummaryTab
 }
