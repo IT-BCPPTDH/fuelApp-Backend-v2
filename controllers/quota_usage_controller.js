@@ -140,7 +140,8 @@ async function getActiveData(params) {
 
 async function disableBus(params) {
     try{
-        let result = await db.query(QUERY_STRING.inActiveBus, [params])
+        let {opt, tanggal} = params
+        let result = await db.query(QUERY_STRING.inActiveBus, [opt, tanggal])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -165,7 +166,8 @@ async function disableBus(params) {
 
 async function disableLV(params) {
     try{
-        let result = await db.query(QUERY_STRING.inActiveLV, [params])
+        let {opt, tanggal} = params
+        let result = await db.query(QUERY_STRING.inActiveLV, [opt, tanggal])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -190,7 +192,8 @@ async function disableLV(params) {
 
 async function disableHLV(params) {
     try{
-        let result = await db.query(QUERY_STRING.inActiveHLV, [params])
+        let {opt, tanggal} = params
+        let result = await db.query(QUERY_STRING.inActiveHLV, [opt, tanggal])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,

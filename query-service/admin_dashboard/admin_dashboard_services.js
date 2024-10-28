@@ -14,7 +14,7 @@ const getTotalDashboard = async (params) => {
         const data = { 
             prevSonding : result.dataClosingPrev ? result.dataClosingPrev.toLocaleString('en-US') : 0,
             openSonding : dataSonding.rows[0].total_opening ? dataSonding.rows[0].total_opening.toLocaleString('en-US') : 0,
-            reciptKpc: dataType.rows[0].total_receive ? dataType.rows[0].total_receive.toLocaleString('en-US') : 0,
+            reciptKpc: dataType.rows[0].total_receive_kpc ? dataType.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
             tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
             closeData: dataType.rows[0].total_close_data ? dataType.rows[0].total_close_data.toLocaleString('en-US') : 0,
@@ -66,7 +66,6 @@ const getTableDashboard = async (params) => {
               total_variant : itemA.total_variant ? itemA.total_variant.toLocaleString('en-US') : 0
             };
         });
-          
         return mergedData
     }catch(err){
         logger.error(err)

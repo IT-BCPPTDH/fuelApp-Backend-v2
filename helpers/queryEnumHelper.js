@@ -35,7 +35,7 @@ const QUERY_STRING = {
     SUM(fl.variant) As total_variant,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive_KPC' THEN fd.qty ELSE 0 END),0) AS total_receive_kpc,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END),0) AS total_receive_kpc,
     COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
     from form_lkf fl
     left join form_data fd on fd.lkf_id  = fl.lkf_id 
@@ -242,9 +242,9 @@ GROUP BY
 
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
     getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "isActive" = 'true'`,
-    inActiveBus : `UPDATE quota_usage SET "isActive" = false WHERE "modelUnit" = 'BUS' and "date" = $1`,
-    inActiveLV : `UPDATE quota_usage SET "isActive" = false WHERE "modelUnit" = 'LV' and "date" = $1`,
-    inActiveHLV : `UPDATE quota_usage SET "isActive" = false WHERE "modelUnit" = 'HLV' and "date" = $1`,
+    inActiveBus : `UPDATE quota_usage SET "isActive" = $1 WHERE "modelUnit" = 'BUS' and "date" = $2`,
+    inActiveLV : `UPDATE quota_usage SET "isActive" = $1 WHERE "modelUnit" = 'LV' and "date" = $2`,
+    inActiveHLV : `UPDATE quota_usage SET "isActive" = $1 WHERE "modelUnit" = 'HLV' and "date" = $2`,
 
     listStasion: `SELECT station from form_lkf where "date" between $1 and $2 group by station`,
     
@@ -283,7 +283,22 @@ GROUP BY
      
     getDataForMail : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
     join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl."date" between $1 and $2`
+    where fl."date" between $1 and $2`,
+
+    getHeaderLkf: `select fl.fuelman_id, fl.opening_dip, opening_sonding,
+    fl.closing_dip as total_close, closing_sonding,
+    fl.flow_meter_start, fl.flow_meter_end, fl.hm_start, fl.hm_end, fl.shift, fl.station,
+    fl.variant AS variant, TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS formatted_date,
+   fl.close_data AS close_data,
+       COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+       COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+       COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
+       COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl.lkf_id = $1
+    group by fl."date", fl.fuelman_id, opening_sonding, closing_sonding, fl.opening_dip, fl.closing_dip,fl.flow_meter_start, 
+    fl.variant,fl.close_data, fl.flow_meter_end,fl.opening_sonding, fl.hm_start, fl.hm_end, fl.shift, fl.station`
 }
 
 module.exports = {
