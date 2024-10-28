@@ -3,7 +3,7 @@ const { formattedHeaders, formatDDMonthYYYY,formattedHHMM,formatedDatesNames } =
 const logger = require('../../helpers/pinoLog');
 const { getEquipment, getFilterBanlaws, getMdElipse } = require('../../helpers/proto/master-data');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
-// const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');
 
 
 const getData = async(dateFrom, dateTo) => {
@@ -315,6 +315,10 @@ const getContentyMail = async(dateFrom, dateTo) => {
             return item;
         });
          
+        const data = {
+            dataKpc: dataKpc,
+            dataIssued: dataIssued
+        }
         return mergedData
     }catch(error){
         logger.error(error)
@@ -324,17 +328,21 @@ const getContentyMail = async(dateFrom, dateTo) => {
 }
 
 const bodyMail = () => {
-    let transporter = nodemailer.createTransport({
-        service: 'gmail',
+    const transporter = nodemailer.createTransport({
+        host: process.env.MAIL_HOST,
+        port: 25,
+        secure: false, 
         auth: {
-            user: 'your-email@gmail.com',
-            pass: 'your-email-password',
+            user: process.env.MAIL_USER, 
+            pass: process.env.MAIL_PASSWORD,
         },
+        tls:{
+            rejectUnauthorized:false
+        }
     });
-    // Buat objek email dengan HTML
 let mailOptions = {
-    from: 'your-email@gmail.com',
-    to: 'recipient-email@example.com',
+    from: process.env.MAIL_EMAIL,
+    to: 'annisa@think-match.com',
     subject: 'RECEIPT KPC',
     html: `
         <table style="border-collapse: collapse; width: 100%; color: white;">
@@ -356,6 +364,13 @@ let mailOptions = {
             </tr>
         </table>
     `,
+    attachments: [
+        // {
+        //   filename: 'report.pdf', 
+        //   path: './path/to/report.pdf', 
+        //   contentType: 'application/pdf', 
+        // },
+      ],
     };
 
     // Kirim email
@@ -374,5 +389,6 @@ module.exports = {
     getFCHmkm,
     getKPC,
     getContentyMail,
-    getFCByOwner
+    getFCByOwner,
+    bodyMail
 }

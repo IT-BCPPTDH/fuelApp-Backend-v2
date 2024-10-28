@@ -18,15 +18,15 @@ async function handleActiveData(res, req) {
 }
 
 async function handleDisableBus(res, req) {
-    await handleResponseParams(res, req, disableBus, 1)
+    await handleResponseJsonOperator(res, req, disableBus, true)
 }
 
 async function handleDisableLV(res, req) {
-    await handleResponseParams(res, req, disableHLV, 1)
+    await handleResponseJsonOperator(res, req, disableLV, true)
 }
 
 async function handleDisableHLV(res, req) {
-    await handleResponseParams(res, req, disableLV, 1)
+    await handleResponseJsonOperator(res, req, disableHLV , true)
 }
 
 module.exports = {

@@ -10,7 +10,7 @@ const { formatYYYYMMDD, formatedDatesYYYYMMDD, formattedHHMM, formatedMonth,
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { getTableDashboard } = require('../query-service/admin_dashboard/admin_dashboard_services');
 const { getData, getFCShift, getFCHmkm,getKPC, 
-    getContentyMail, getFCByOwner } = require('../query-service/downloads/download_services');
+    getContentyMail, getFCByOwner, bodyMail } = require('../query-service/downloads/download_services');
 
 
 const generateExcel = (data, headers, fileName) => {
@@ -2470,10 +2470,12 @@ const sentMail = async(data) => {
 
         const dateFrom = '2024-10-03'
         const dateTill = '2024-10-03'
-        const result = await getContentyMail(dateFrom, dateTill)
+        // const result = await sentMail(dateFrom, dateTill)
+        const result = await bodyMail()
+        console.log(result)
         return {
             status: HTTP_STATUS.OK,
-            link: result
+            // link: result
         }
     }catch(error){
         logger.error(error)
