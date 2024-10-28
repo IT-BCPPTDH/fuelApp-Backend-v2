@@ -133,3 +133,6 @@ package-lock.json
 audit.json
 
 download
+
+upload
+./upload
