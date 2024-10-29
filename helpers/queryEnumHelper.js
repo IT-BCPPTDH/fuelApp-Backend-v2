@@ -190,7 +190,10 @@ const QUERY_STRING = {
     SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
     SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
     SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive,
-    SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc
+    SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc,
+    fl.flow_meter_start,  
+    fl.flow_meter_end,  
+    fl.shift     
 FROM 
     form_lkf fl
 LEFT JOIN 
@@ -198,7 +201,8 @@ LEFT JOIN
 WHERE 
     fl.lkf_id = $1  
 GROUP BY 
-    fl.date, fl.station, fl.variant;`,
+    fl.date, fl.station, fl.variant, fl.flow_meter_start, fl.flow_meter_end, fl.shift;  -- Tambahkan ke GROUP BY
+`,
 
     getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
     fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 

@@ -92,31 +92,31 @@ const deleteForm = async (params) => {
 }
 
 const editForm = async (updateFields) => {
-    try{
+    console.log(updateFields)
+    try {
+
         const setClauses = Object.keys(updateFields)
-            .filter(field => field !== 'id')  
+            .filter(field => field !== 'from_data_id') // Exclude from_data_id for the update
             .map((field, index) => `${field} = $${index + 1}`)
             .join(', ');
 
         const values = Object.keys(updateFields)
-            .filter(field => field !== 'id')
+            .filter(field => field !== 'from_data_id')
             .map(field => updateFields[field]);
 
-        values.push(updateFields.id);
+        // Add from_data_id at the end for the WHERE clause
+        values.push(updateFields.from_data_id);
 
         const query = `UPDATE form_data SET ${setClauses} WHERE from_data_id = $${values.length}`;
-        const result = await db.query(query, values)
+        const result = await db.query(query, values);
 
-        if(result){
-            return true
-        }
-
-        return false
-    }catch (error){
-        logger.error(error)
-        return false
+        return result.rowCount > 0; // Return true if at least one row was updated
+    } catch (error) {
+        logger.error(error);
+        return false;
     }
-}
+};
+
 
 module.exports = {
     postFormData,
