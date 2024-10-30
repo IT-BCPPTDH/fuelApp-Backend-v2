@@ -1,7 +1,7 @@
 const logger = require("../helpers/pinoLog");
 const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
-const { getTotalData,getTableData } = require("../query-service/admin_detail_form_data/form_data_admin_services");
+const { getTotalData,getTableData, insertBulkData } = require("../query-service/admin_detail_form_data/form_data_admin_services");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
 
 async function summaryFormData (data){
@@ -108,66 +108,14 @@ async function getPrintLkf(data){
     }
 }
 
-async function uploadData(data){
+async function uploadData(headerArray, jsonArray, data){
     try{
-        console.log("sini")
-        console.log(data)
-        const { base64File } = data;
-
-        const buffer = Buffer.from(base64File, 'base64');
-
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(buffer); 
-
-        // Mengambil sheet pertama
-        const worksheet = workbook.worksheets[0];
-
-        const data = [];
-        worksheet.eachRow((row, rowNumber) => {
-          const rowData = {};
-          row.eachCell((cell, colNumber) => {
-            rowData[`Column${colNumber}`] = cell.value; 
-          });
-          data.push(rowData);
-        });
-
-        // Proses data sesuai kebutuhan (misalnya menyimpannya ke database)
-        console.log(data)
-        res.json(data);
-    
+        const users = JSON.parse(data)
+        const result = await insertBulkData(headerArray, jsonArray, users)
         return {
           status: HTTP_STATUS.OK,
           message: "Succesfully insert data!",
-        //   rowsLength: arrData.length
-        }
-    }catch(error){
-        return {
-            status: HTTP_STATUS.BAD_REQUEST,
-            message: `${STATUS_MESSAGE.ERR_GET} ${error}`,
-          };
-    }
-}
-
-async function bulkInsert(bulkData){
-    try{
-        const dates = bulkData.map((itm) => itm.date_trx)
-        const uniqueDates = [...new Set(dates)];
-        const existingData = await getAllByDate(uniqueDates)
-        const arrData = []
-        for (let index = 0; index < bulkData.length; index++) {
-            const element = bulkData[index];
-            const isExisting = existingData.data.some(item => item.from_data_id === element.from_data_id);
-
-            if (!isExisting) {
-              await insertToForm(element);
-              arrData.push(element)
-            }
-        }
-    
-        return {
-          status: HTTP_STATUS.OK,
-          message: "Succesfully insert data!",
-          rowsLength: arrData.length
+          data: result
         }
     }catch(error){
         return {
