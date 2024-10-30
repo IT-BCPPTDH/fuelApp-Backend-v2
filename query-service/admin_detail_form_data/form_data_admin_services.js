@@ -55,12 +55,12 @@ const getTableData = async (params) => {
 const insertBulkData = async(header, dataArray, userData) => {
     try {
         const today = new Date()
-        const dateNow = formatYYYYMMDD(today)
         let unitLimited = []
-        let lkfId; 
+        let lkfId, dateNow; 
 
         for (item of header) {
             lkfId = item[0]
+            dateNow = formatYYYYMMDD(item[1])
         }
 
         for (const row of dataArray) {
@@ -126,8 +126,8 @@ const insertBulkData = async(header, dataArray, userData) => {
             if(dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')){
                 const totalActual = dataJson.qty + limitQuota.rows[0].used;
                 if(limitQuota.rows[0].quota > totalActual){
-                    const params = [dataJson.qty, dataJson.no_unit];
-                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2 and "date" = '2024-10-29'`;
+                    const params = [dataJson.qty, dataJson.no_unit, dateNow];
+                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2 and "date" = $3`;
                     await db.query(updateQuotaQuery, params);
                     await db.query(createOperatorQuery, values);
                 }else{
@@ -137,10 +137,9 @@ const insertBulkData = async(header, dataArray, userData) => {
                 await db.query(createOperatorQuery, values);
             }
         }
-
         return unitLimited
-
     } catch (error) {
+        console.log(error)
         logger.error(error)
         return false
     }
