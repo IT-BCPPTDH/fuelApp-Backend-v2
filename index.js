@@ -23,6 +23,7 @@ app.options('/*', (res, req) => {
     res.writeHeader('Access-Control-Allow-Origin', '*');
     res.writeHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
     res.writeHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.writeHeader('Access-Control-Allow-Headers', 'custom_token');
     res.writeHeader('Access-Control-Allow-Credentials', 'true');
 
     res.onAborted(() => {

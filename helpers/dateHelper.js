@@ -149,6 +149,18 @@ const formatDDMonthYYYY = (dateStr) => {
     return `${day} ${month} ${year}`;;
 };
 
+function formattedHHMMservice(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        return 'Invalid time';
+    }
+
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+
+    return `${hours}:${minutes}`;
+}
+
 module.exports ={
     formatYYYYMMDD,
     prevFormatYYYYMMDD,
@@ -163,5 +175,6 @@ module.exports ={
     getFirstDate,
     formattedHeaders,
     formatDateMMYYYY,
-    formatDDMonthYYYY
+    formatDDMonthYYYY,
+    formattedHHMMservice
 }

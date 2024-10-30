@@ -2470,8 +2470,9 @@ const sentMail = async(data) => {
 
         const dateFrom = '2024-10-03'
         const dateTill = '2024-10-03'
+        // const res = DailyConsumtion()
         // const result = await sentMail(dateFrom, dateTill)
-        const result = await bodyMail()
+        const result = await bodyMail(dateFrom,dateTill)
         console.log(result)
         return {
             status: HTTP_STATUS.OK,

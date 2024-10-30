@@ -1,7 +1,10 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY, formattedHHMMservice } = require('../../helpers/dateHelper');
+const { fetchUser } = require('../../helpers/httpHelper');
 const logger = require('../../helpers/pinoLog');
+const { getEquipment } = require('../../helpers/proto/master-data');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
+
 
 const getTotalData = async (params) => {
     try {
@@ -49,45 +52,102 @@ const getTableData = async (params) => {
     }
 }
 
-const insertBulkData = async(dataJson) => {
+const insertBulkData = async(header, dataArray, userData) => {
     try {
-        const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
-        const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
+        const today = new Date()
+        const dateNow = formatYYYYMMDD(today)
+        let unitLimited = []
+        let lkfId; 
 
-        const createOperatorQuery = `
-          INSERT INTO form_data (${sanitizedColumns.join(', ')})
-          VALUES (${valuesPlaceholders})
-        `;
+        for (item of header) {
+            lkfId = item[0]
+        }
 
-        const values = Object.keys(dataJson).map(key => dataJson[key]);
-        const result = await db.query(createOperatorQuery, values);
+        for (const row of dataArray) {
+            const fethUnit = await getEquipment([row[0]])
+            const unit = JSON.parse(fethUnit.data)
+            const typeMap = {
+                "I": "Issued",
+                "T": "Transfer",
+                "R": "Receive",
+                "K": "Receipt KPC"
+            };
+            const typeTrx = typeMap[row[9]] || "Unknown";
 
-        //jumlahkan dulu bila qty dari nomor yang sama
-        if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
-            
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit])
-            if(existingData.rows.length > 0){
-                dataJson.qty += existingData.rows[0].used
+            const fetchLastData = await db.query(QUERY_STRING.getLastDataByStation, [unit[0].unit_no])
+            const unitLast = fetchLastData.rows
+
+            const jmlFbr = (parseFloat(row[1]) - unitLast[0].hm_km) / Number(row[2])
+            let dt = Math.floor(Date.now() / 1000);
+            const users = await fetchUser()
+            const user = users.data.find((item) => item.JDE == row[3])
+
+            const dataJson = {
+                from_data_id: dt,
+                no_unit: unit[0].unit_no,
+                model_unit: unit[0].type,
+                owner: unit[0].owner,
+                date_trx: dateNow,
+                qty: row[2],
+                hm_km: row[1],
+                jde_operator: user.JDE,
+                name_operator: user.fullname ? user.fullname : "",
+                start: formattedHHMMservice(row[4]),
+                end: formattedHHMMservice(row[5]),
+                flow_start: row[6],
+                flow_end: row[7],
+                type: typeTrx,
+                fbr: jmlFbr,
+                lkf_id: lkfId,
+                created_at: today,
+                created_by: userData.JDE
+            };
+
+            const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
+            const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
+
+            const createOperatorQuery = `
+              INSERT INTO form_data (${sanitizedColumns.join(', ')})
+              VALUES (${valuesPlaceholders})
+            `;
+
+            const values = Object.keys(dataJson).map(key => {
+              if (key === 'created_at' && dataJson[key] instanceof Date) {
+                return dataJson[key].toISOString();
+              }
+              if (key === 'start' || key === 'end') {
+                return dataJson[key].toString();
+              }
+              return dataJson[key];
+            });
+
+            const limitQuota = await db.query(QUERY_STRING.getQuota, [dataJson.no_unit])
+         
+            if(dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')){
+                const totalActual = dataJson.qty + limitQuota.rows[0].used;
+                if(limitQuota.rows[0].quota > totalActual){
+                    const params = [dataJson.qty, dataJson.no_unit];
+                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2 and "date" = '2024-10-29'`;
+                    await db.query(updateQuotaQuery, params);
+                    await db.query(createOperatorQuery, values);
+                }else{
+                    unitLimited.push(dataJson.no_unit)
+                }
+            }else{
+                await db.query(createOperatorQuery, values);
             }
-
-            const params = [dataJson.qty, dataJson.no_unit]
-            const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
-            const res = await db.query(query, params)
         }
 
-        if(result){
-            return true
-        }
-        return false
+        return unitLimited
 
     } catch (error) {
         logger.error(error)
-        console.log(error)
         return false
     }
 }
 
 module.exports = {
     getTotalData,
-    getTableData
+    getTableData,
+    insertBulkData
 }
