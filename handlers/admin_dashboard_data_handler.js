@@ -14,7 +14,7 @@ async function handlePrintData(res, req) {
 }
 
 async function handleUploadData(res, req) {
-    await await handleUploadFile(res, req,uploadData, true)
+    await  handleUploadFile(res, req, uploadData, true)
 }
 
 module.exports = {

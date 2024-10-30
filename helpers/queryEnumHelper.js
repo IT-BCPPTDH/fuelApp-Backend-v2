@@ -245,6 +245,7 @@ GROUP BY
     inActiveBus : `UPDATE quota_usage SET "isActive" = $1 WHERE "modelUnit" = 'BUS' and "date" = $2`,
     inActiveLV : `UPDATE quota_usage SET "isActive" = $1 WHERE "modelUnit" = 'LV' and "date" = $2`,
     inActiveHLV : `UPDATE quota_usage SET "isActive" = $1 WHERE "modelUnit" = 'HLV' and "date" = $2`,
+    getQuota : `Select * from quota_usage where "unitNo" = $1 and "isActive" = 'true' ORDER BY "date" desc LIMIT 1`,
 
     listStasion: `SELECT station from form_lkf where "date" between $1 and $2 group by station`,
     
@@ -281,9 +282,13 @@ GROUP BY
     join form_data fd on fd.lkf_id = fl.lkf_id 
     where fl."date" between $1 and $2 and fd."type" ='Issued'`, 
      
-    getDataForMail : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
+    getDataForMailKPC : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
     join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl."date" between $1 and $2`,
+    where fl."date" between $1 and $2 and fd.type = 'Receipt KPC'`,
+
+    getDataForMailIssued : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
+    join form_data fd on fd.lkf_id = fl.lkf_id 
+    where fl."date" between $1 and $2 and fd.type = 'Issued'`,
 
     getHeaderLkf: `select fl.fuelman_id, fl.opening_dip, opening_sonding,
     fl.closing_dip as total_close, closing_sonding,

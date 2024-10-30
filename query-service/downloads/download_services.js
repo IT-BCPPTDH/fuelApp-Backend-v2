@@ -4,7 +4,7 @@ const logger = require('../../helpers/pinoLog');
 const { getEquipment, getFilterBanlaws, getMdElipse } = require('../../helpers/proto/master-data');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 const nodemailer = require('nodemailer');
-
+const path = require('path');
 
 const getData = async(dateFrom, dateTo) => {
     try{
@@ -294,32 +294,43 @@ const getFCByOwner = async(dateFrom, dateTo) => {
 
 const getContentyMail = async(dateFrom, dateTo) => {
     try{
-        const fetchData = await db.query(QUERY_STRING.getDataForMail, [dateFrom, dateTo])
-        const UnitsNosKPC = fetchData.rows.filter(item => item.type === 'Receipt KPC').map(item => item.station);
-        const UnitsNos = fetchData.rows.filter(item => item.type !== 'Receipt KPC').map(item => item.no_unit);
-        const fetchUnit = await getEquipment(UnitsNos)
-        const unit = JSON.parse(fetchUnit.data)
-        const fetchBanlaws = await getFilterBanlaws(UnitsNosKPC)
-        const banlaws = JSON.parse(fetchBanlaws.data)
+        const fetchDataKPC = await db.query(QUERY_STRING.getDataForMailKPC, [dateFrom, dateTo])
+        const fetchDataIssued = await db.query(QUERY_STRING.getDataForMailIssued, [dateFrom, dateTo])
+        const UnitsNosKPC = [...new Set(fetchDataKPC.rows.map(item => item.no_unit))];
+        const UnitsNos = [...new Set(fetchDataIssued.rows.map(item => item.no_unit))];
+        const fetchKPC = await getMdElipse(UnitsNosKPC)
+        const unitKPC = JSON.parse(fetchKPC.data)
+        const fetchIssued = await getMdElipse(UnitsNos)
+        const unitIssued = JSON.parse(fetchIssued.data)
 
-
-        const mergedData = fetchData.rows.map(item => {
-            const matchingData = banlaws.find(data => data.unit_elipse === String(item.station));
-            console.log(`Memeriksa: item.station = ${item.station}, matchingData.unit_elipse = ${matchingData ? matchingData.unit_elipse : 'Tidak ditemukan'}`);
-            if (matchingData) {
-                return {
-                    ...item,
-                    owner: matchingData.owner
-                };
-            }
-            return item;
+        const mergedDataKPC = fetchDataKPC.rows.map(item => {
+            const matchingData = unitKPC.find(data => data.equip_no_unit === item.no_unit);
+            return {
+                ...item,
+                owner: matchingData ? matchingData.equip_owner_elipse : 'PT. Darma Henwa Tbk'
+            };
         });
+
+        const mergedDataIssued = fetchDataIssued.rows.map(item => {
+            const matchingData = unitIssued.find(data => data.equip_no_unit === item.no_unit);
+            return {
+                ...item,
+                category: matchingData ? (matchingData.equip_category ? matchingData.equip_category : 'OTHERS') : 'OTHERS'
+            };
+        });
+
+        const rets = sumFunction(mergedDataKPC)
+        console.log(rets)
+
+        // const dataKpc = {...restTotal, ...totals}
          
-        const data = {
-            dataKpc: dataKpc,
-            dataIssued: dataIssued
-        }
-        return mergedData
+        // console.log(totals)
+        // console.log(dataKpc)
+        // const data = {
+        //     dataKpc: dataKpc,
+        //     dataIssued: dataIssued
+        // }
+        return true
     }catch(error){
         logger.error(error)
         console.error('Error during update:', error);
@@ -327,60 +338,151 @@ const getContentyMail = async(dateFrom, dateTo) => {
     }
 }
 
-const bodyMail = () => {
-    const transporter = nodemailer.createTransport({
-        host: process.env.MAIL_HOST,
-        port: 25,
-        secure: false, 
-        auth: {
-            user: process.env.MAIL_USER, 
-            pass: process.env.MAIL_PASSWORD,
-        },
-        tls:{
-            rejectUnauthorized:false
-        }
-    });
-let mailOptions = {
-    from: process.env.MAIL_EMAIL,
-    to: 'annisa@think-match.com',
-    subject: 'RECEIPT KPC',
-    html: `
-        <table style="border-collapse: collapse; width: 100%; color: white;">
-            <tr>
-                <th style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: left;">RECEIPT KPC</th>
-                <th style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: left;">Date 16 October 2024</th>
-            </tr>
-            <tr>
-                <td style="background-color: #00008B; border: 1px solid black; padding: 8px;">PT. Madhani Talata Nusantara</td>
-                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: right;">95,041</td>
-            </tr>
-            <tr>
-                <td style="background-color: #00008B; border: 1px solid black; padding: 8px;">PT. Darma Henwa Tbk</td>
-                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: right;">129,599</td>
-            </tr>
-            <tr>
-                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; font-weight: bold;">Grand Total</td>
-                <td style="background-color: #00008B; border: 1px solid black; padding: 8px; text-align: right; font-weight: bold;">224,640</td>
-            </tr>
-        </table>
-    `,
-    attachments: [
-        // {
-        //   filename: 'report.pdf', 
-        //   path: './path/to/report.pdf', 
-        //   contentType: 'application/pdf', 
-        // },
-      ],
-    };
+const bodyMail = async(dateStart, dateEnd) => {
+    try{
+        const content = await getContentyMail(dateStart, dateEnd)
+        console.log(content)
+        const yesterday = '2024-10-27';
+        const supplier_name = 'ABC Supplier';
+        const receipt = [
+          { category: 'Category A', total: 100 },
+          { category: 'Category B', total: 200 },
+        ];
+        const total = [
+          { category: 'Category X', total: 150 },
+          { category: 'Category Y', total: 250 },
+        ];
+        const totaldh = [{ total: 400 }];
 
-    // Kirim email
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.log('Error saat mengirim email:', error);
-        } else {
-            console.log('Email terkirim: ' + info.response);
+        // Function to format numbers
+        // const numberFormat = (number) => {
+        //   return new Intl.NumberFormat().format(number);
+        // };
+
+        // // Calculate totals
+        // let rc = receipt.reduce((acc, curr) => acc + curr.total, 0);
+        // let ttl = total.reduce((acc, curr) => acc + curr.total, 0);
+        // const transporter = nodemailer.createTransport({
+        //     host: process.env.MAIL_HOST,
+        //     port: 25,
+        //     secure: false, 
+        //     auth: {
+        //         user: process.env.MAIL_USER, 
+        //         pass: process.env.MAIL_PASSWORD,
+        //     },
+        //     tls:{
+        //         rejectUnauthorized:false
+        //     }
+        // });
+        // const fileName = 'Fuel-Consumption-06-Oct-2024.xlsx'
+        // // const currentModulePath = dirname(fileURLToPath(import.meta.url));
+        // let mailOptions = {
+        //     from: process.env.MAIL_EMAIL,
+        //     to: 'kazehayareo@gmail.com',
+        //     cc: 'annisa@think-match.com',
+        //     subject: 'Fuelapp Auto Report - Fuel Consumption 16-Oct-2024',
+        //     html : `
+        //     <!DOCTYPE html>
+        //     <html lang="en" dir="ltr">
+        //       <head>
+        //         <meta charset="utf-8">
+        //         <title></title>
+        //       </head>
+        //       <body>
+        //         <p>Dear All,</p>
+        //         <br>
+        //         <br>
+        //         <p id="showlkf" style="margin-top:20px; margin-bottom:100px">Terlampir, Fuel Consumption ${yesterday}</p>
+        //         <table>
+        //           <tbody>
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>RECEIPT ${supplier_name}</b></td>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Date ${yesterday}</b></td>
+        //             </tr>
+        //             ${receipt.map(r => `
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>${r.category}</b></td>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#ffffff;color:#0b0f8a;font-size:10pt;text-align:right"><b>${numberFormat(r.total)}</b></td>
+        //             </tr>
+        //             `).join('')}
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Grand Total</b></td>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:right"><b>${numberFormat(rc)}</b></td>
+        //             </tr>
+        //           </tbody>
+        //         </table>
+        //         <br><br>
+        //         <table>
+        //           <tbody>
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>ISSUE BY CATEGORY</b></td>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:center"><b>Total</b></td>
+        //             </tr>
+        //             ${total.map(tot => `
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>${tot.category}</b></td>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#ffffff;color:#0b0f8a;font-size:10pt;text-align:right"><b>${numberFormat(tot.total)}</b></td>
+        //             </tr>
+        //             `).join('')}
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Total DH</b></td>
+        //               ${totaldh.map(dh => `
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:right"><b>${numberFormat(dh.total)}</b></td>
+        //               `).join('')}
+        //             </tr>
+        //             <tr>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Grand Total</b></td>
+        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:right"><b>${numberFormat(ttl)}</b></td>
+        //             </tr>
+        //           </tbody>
+        //         </table>
+        //       </body>
+        //     </html>
+        //     `,
+        //     attachments: [
+        //         {
+        //           filename: fileName,
+        //           path: path.join(__dirname, '../../download/', fileName), 
+        //           contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        //         },
+        //     ],
+        // };
+
+        // console.log(process.env.DOWNLOAD_PATH)
+    
+        // // Kirim email
+        // transporter.sendMail(mailOptions, (error, info) => {
+        //     if (error) {
+        //         console.log('Error saat mengirim email:', error);
+        //     } else {
+        //         console.log('Email terkirim: ' + info.response);
+        //     }
+        // });   
+        return true 
+    }catch(error){
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+}
+
+
+const sumFunction = (data) => {
+    const totals = data.reduce((acc, curr) => {
+        if (!acc[curr.owner]) {
+            acc[curr.owner] = 0;
         }
-    });    
+        acc[curr.owner] += curr.qty;
+        return acc;
+    }, {});
+
+    const grandTotal = Object.values(totals).reduce((acc, curr) => acc + curr, 0);
+    const datas = {
+        total : totals,
+        jml: grandTotal
+    }
+
+    return datas
 }
 
 module.exports = {
@@ -388,7 +490,6 @@ module.exports = {
     getFCShift,
     getFCHmkm,
     getKPC,
-    getContentyMail,
     getFCByOwner,
     bodyMail
 }
