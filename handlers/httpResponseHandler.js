@@ -237,7 +237,8 @@ async function handleUploadFile(res, req, action, token = false) {
               });
 
               const cellValueB1 = sheet.getCell('B1').value;
-              headerData.push([cellValueB1]);
+              const cellValueG = sheet.getCell('G2').value;
+              headerData.push([cellValueB1, cellValueG]);
               uploadedFiles.push(customFilename);
             } else if (['jpeg', 'jpg', 'png', 'webp'].includes(fileExtension)) {
               const savedFilename = await optimizeAndSaveImage(part.data, sanitizedFilename, uploadDir);
