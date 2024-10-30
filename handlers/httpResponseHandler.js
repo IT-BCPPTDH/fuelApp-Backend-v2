@@ -2,9 +2,8 @@ const redisClient = require('../helpers/redisHelper');
 const { getDataRedis } = require('../helpers/redisTransaction');
 const fs = require('fs');
 const path = require('path');
-// const { optimizeAndSaveImage, optimizeAndSaveFile } = require('./optimize-image');
-const allowedFileTypes = ['jpeg', 'jpg', 'png', 'webp','pdf', 'xlxs'];
-
+const ExcelJS = require('exceljs');
+const client = require('../helpers/redisHelper');
 
 async function handleResponseJsonAdmin(res, req, action, token) {
     setCorsHeaders(res);
@@ -145,167 +144,165 @@ function handleInvalidJson(res) {
 function setCorsHeaders(res) {
     res.writeHeader('Access-Control-Allow-Origin', '*')
         .writeHeader('Access-Control-Allow-Credentials', 'true')
-        .writeHeader('Access-Control-Allow-Headers', 'origin, content-type, accept, x-requested-with, authorization, lang, domain-key')
+        .writeHeader('Access-Control-Allow-Headers', 'origin, content-type, accept, x-requested-with, authorization, lang, domain-key, custom_token')
         .writeHeader('Access-Control-Max-Age', '2592000')
         .writeHeader('Vary', 'Origin');
 }
 
+function generateCustomFilename(filename) {
+  const timestamp = Date.now(); // Mendapatkan timestamp saat ini
+  const extension = filename.split('.').pop(); // Mendapatkan ekstensi file
+  const baseName = filename.replace(/\.[^/.]+$/, ""); // Menghilangkan ekstensi asli untuk menambahkan timestamp
+
+  // Menggabungkan nama file dengan timestamp dan ekstensi
+  return `${baseName}-${timestamp}.${extension}`;
+} 
+
+const allowedFileTypes = ['jpeg', 'jpg', 'png', 'webp', 'xlsx'];
+
 function sendJsonResponse(res, result) {
-    res.cork(() => {
-      res
-        .writeStatus(String(result.status || 200))
-        .writeHeader('content-type', 'application/json')
-        .end(JSON.stringify(result));
-    });
-  }
+  res.cork(() => {
+    res
+      .writeStatus(String(result.status || 200))
+      .writeHeader('content-type', 'application/json')
+      .end(JSON.stringify(result));
+  });
+}
 
 function sanitizeFilename(filename) {
-    return filename.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  }
+  return filename.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+}
 
-async function handleUploadFile(res, req, token = false) {
-    setCorsHeaders(res);
-  
-    const contentType = req.getHeader('content-type');
-    // const cookieHeader = req.getHeader('cookie');
-    const boundary = contentType.split('; ')[1]?.replace('boundary=', '');
-  
-    // let keyToken, userData;
-    // if (token) {
-    //   keyToken = extractTokenFromCookies(cookieHeader);
-    //   if (!keyToken) {
-    //     unauthorizedResponse(res, 'Authentication token is missing.');
-    //     return;
-    //   }
-    // }
-  
-    let buffer = Buffer.alloc(0);
-    res.onData((chunk, isLast) => {
-      buffer = Buffer.concat([buffer, Buffer.from(chunk)]);
-  
-      if (isLast) {
-        const parts = parseMultipartData(buffer, boundary);
-  
-        res.cork(async () => {
-        //   if (token) {
-        //     userData = await getTokenDataRedis(keyToken);
-        //     if (!userData) {
-        //       unauthorizedResponse(res, 'Invalid authentication token.');
-        //       return;
-        //     }
-        //   }
-  
-          const uploadDir = path.join(__dirname, process.env.UPLOAD_PATH);
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-          }
-  
-          // Read all existing filenames in the upload directory, removing timestamps and extensions for comparison
-          const existingFiles = fs.readdirSync(uploadDir).map((file) => {
-            // Strip the timestamp and extension to get the base filename
-            return file.replace(/-\d{13,}\.\w+$/, '').replace(/\.\w+$/, '');
-          });
-  
-          let uploadedFiles = [];
-  
-          for (const part of parts) {
-            const sanitizedFilename = sanitizeFilename(part.filename);
-            const fileExtension = sanitizedFilename.split('.').pop().toLowerCase();
-  
-            if (!allowedFileTypes.includes(fileExtension)) {
-              console.error(`File type not allowed: ${fileExtension}`);
-              sendJsonResponse(res, { error: `File type ${fileExtension} not allowed.` }, 400);
-              return;
-            }
-  
-            // Generate the custom filename with timestamps
-            const customFilename = generateCustomFilename(sanitizedFilename);
-  
-            // Strip timestamp and extension from the sanitized filename
-            const baseNameWithoutTimestamp = sanitizedFilename.replace(/-\d{13,}\.\w+$/, '').replace(/\.\w+$/, '');
-  
-            // Check if the cleaned-up version of the filename already exists in the list
-            if (existingFiles.includes(baseNameWithoutTimestamp)) {
-              console.log(`File already exists: ${baseNameWithoutTimestamp}. Skipping file save.`);
-              uploadedFiles.push(`${baseNameWithoutTimestamp}.${fileExtension}`); // Add existing file to the list without saving again
-              continue; // Skip to the next file without saving
-            }
-  
-            const filePath = path.join(uploadDir, customFilename);
-  
-            try {
-              if (['jpeg', 'jpg', 'png', 'webp'].includes(fileExtension)) {
-                const savedFilename = await optimizeAndSaveImage(part.data, sanitizedFilename, uploadDir);
-                console.log(`Optimized image saved as: ${savedFilename}`);
-                uploadedFiles.push(savedFilename);
-              } else {
-                fs.writeFileSync(filePath, part.data);
-                uploadedFiles.push(customFilename);
-              }
-            } catch (error) {
-              console.error('Error saving file:', error);
-              sendJsonResponse(res, { error: 'Error saving file.' }, 500);
-              return;
-            }
-          }
-  
-          const result = {
-            status: 200,
-            message: 'Files uploaded successfully!',
-            files: uploadedFiles,
-          };
-  
-          sendJsonResponse(res, result);
+async function handleUploadFile(res, req, action, token = false) {
+  setCorsHeaders(res);
+  const contentType = req.getHeader('content-type');
+  const boundary = contentType.split('; ')[1]?.replace('boundary=', '');
+  let session_token = req.getHeader('custom_token')
+
+  let buffer = Buffer.alloc(0);
+  res.onData((chunk, isLast) => {
+    buffer = Buffer.concat([buffer, Buffer.from(chunk)]);
+    if (isLast) {
+      const parts = parseMultipartData(buffer, boundary);
+
+      res.cork(async () => {
+        const uploadDir = path.join(__dirname, process.env.UPLOAD_PATH);
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const existingFiles = fs.readdirSync(uploadDir).map((file) => {
+          return file.replace(/-\d{13,}\.\w+$/, '').replace(/\.\w+$/, '');
         });
-      }
-    });
-  
-    // Handle aborted requests
-    res.onAborted(() => {
-      console.log('Request aborted');
-    });
-  }
+
+        let uploadedFiles = [];
+
+        let jsonData = [];
+        let headerData = []
+        for (const part of parts) {
+          const sanitizedFilename = sanitizeFilename(part.filename);
+          const fileExtension = sanitizedFilename.split('.').pop().toLowerCase();
+
+          if (!allowedFileTypes.includes(fileExtension)) {
+            console.error(`File type not allowed: ${fileExtension}`);
+            sendJsonResponse(res, { error: `File type ${fileExtension} not allowed.` }, 400);
+            return;
+          }
+
+          const customFilename = generateCustomFilename(sanitizedFilename);
+          const baseNameWithoutTimestamp = sanitizedFilename.replace(/-\d{13,}\.\w+$/, '').replace(/\.\w+$/, '');
+
+          if (existingFiles.includes(baseNameWithoutTimestamp)) {
+            console.log(`File already exists: ${baseNameWithoutTimestamp}. Skipping file save.`);
+            uploadedFiles.push(`${baseNameWithoutTimestamp}.${fileExtension}`);
+            continue;
+          }
+
+          const filePath = path.join(uploadDir, customFilename);
+          
+          try {
+            if (fileExtension === 'xlsx') {
+              const workbook = new ExcelJS.Workbook();
+              await workbook.xlsx.load(part.data); 
+              const sheet = workbook.getWorksheet(1); 
+            
+              sheet.eachRow((row, rowNumber) => {
+                if (rowNumber >= 5) {
+                  const rowData = row.values.slice(1, 11);
+                  const hasData = rowData.some(cell => cell !== undefined && cell !== null);
+                  if (hasData) {
+                    jsonData.push(rowData);
+                  }
+                }
+              });
+
+              const cellValueB1 = sheet.getCell('B1').value;
+              headerData.push([cellValueB1]);
+              uploadedFiles.push(customFilename);
+            } else if (['jpeg', 'jpg', 'png', 'webp'].includes(fileExtension)) {
+              const savedFilename = await optimizeAndSaveImage(part.data, sanitizedFilename, uploadDir);
+              console.log(`Optimized image saved as: ${savedFilename}`);
+              uploadedFiles.push(savedFilename);
+            } else {
+              fs.writeFileSync(filePath, part.data);
+              uploadedFiles.push(customFilename);
+            }
+          } catch (error) {
+            console.error('Error saving file:', error);
+            sendJsonResponse(res, { error: 'Error saving file.' }, 500);
+            return;
+          }
+        }
+        const data = await client.get(session_token);
+        const result = await action(headerData, jsonData, data);
+        sendJsonResponse(res, result);
+      });
+    }
+  });
+
+  res.onAborted(() => {
+    console.log('Request aborted');
+  });
+}
 
 function parseMultipartData(buffer, boundary) {
-    let parts = [];
-    let boundaryBuffer = Buffer.from(`--${boundary}`, 'utf-8');
-    let offset = buffer.indexOf(boundaryBuffer) + boundaryBuffer.length;
-  
-    while (offset < buffer.length) {
-  
-      let nextOffset = buffer.indexOf(boundaryBuffer, offset);
-      if (nextOffset === -1) break;
-  
-      let partBuffer = buffer.slice(offset, nextOffset);
-      if (partBuffer.length === 0) break;
-  
-      let headerEndIndex = partBuffer.indexOf('\r\n\r\n');
-      if (headerEndIndex === -1) break;
-  
-      let headerBuffer = partBuffer.slice(0, headerEndIndex).toString();
-      let contentBuffer = partBuffer.slice(headerEndIndex + 4); 
-  
-      let headers = headerBuffer.split('\r\n').reduce((acc, line) => {
-        let [key, value] = line.split(': ');
-        acc[key.toLowerCase()] = value;
-        return acc;
-      }, {});
-  
-      let match = headers['content-disposition']?.match(/name="([^"]+)"; filename="([^"]+)"/);
-      if (match) {
-        parts.push({
-          name: match[1],
-          filename: match[2],
-          data: contentBuffer.slice(0, contentBuffer.length - 2),
-        });
-      }
-  
-      offset = nextOffset + boundaryBuffer.length + 2; 
+  let parts = [];
+  let boundaryBuffer = Buffer.from(`--${boundary}`, 'utf-8');
+  let offset = buffer.indexOf(boundaryBuffer) + boundaryBuffer.length;
+
+  while (offset < buffer.length) {
+    let nextOffset = buffer.indexOf(boundaryBuffer, offset);
+    if (nextOffset === -1) break;
+
+    let partBuffer = buffer.slice(offset, nextOffset);
+    if (partBuffer.length === 0) break;
+
+    let headerEndIndex = partBuffer.indexOf('\r\n\r\n');
+    if (headerEndIndex === -1) break;
+
+    let headerBuffer = partBuffer.slice(0, headerEndIndex).toString();
+    let contentBuffer = partBuffer.slice(headerEndIndex + 4); 
+
+    let headers = headerBuffer.split('\r\n').reduce((acc, line) => {
+      let [key, value] = line.split(': ');
+      acc[key.toLowerCase()] = value;
+      return acc;
+    }, {});
+
+    let match = headers['content-disposition']?.match(/name="([^"]+)"; filename="([^"]+)"/);
+    if (match) {
+      parts.push({
+        name: match[1],
+        filename: match[2],
+        data: contentBuffer.slice(0, contentBuffer.length - 2),
+      });
     }
-  
-    return parts;
+
+    offset = nextOffset + boundaryBuffer.length + 2;
+  }
+
+  return parts;
 }
-  
 
 module.exports = {
     handleResponseJsonAdmin,

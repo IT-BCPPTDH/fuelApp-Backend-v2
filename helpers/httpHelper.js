@@ -80,9 +80,29 @@ const fetchUnitLV = async (data) => {
     }
 };
 
+const fetchUser = async (data) => {
+    try {
+        const response = await fetch(`${user}/api-user/get-user-fuel`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // body: JSON.stringify(arrayData)
+        });
+        if (!response.ok) {
+            throw new Error('Gagal mengambil data');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching data:', error.message);
+        throw error;
+    }
+};
+
 module.exports ={
     loginUser,
     fetchFromMasterStation,
     signOut,
-    fetchUnitLV
+    fetchUnitLV,
+    fetchUser
 }
