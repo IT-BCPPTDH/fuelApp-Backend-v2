@@ -465,6 +465,7 @@ const generateElipse = (data, headers, fileName) => {
 const downloadReportLkf = async(data) => {
     try{
         let convertedArray
+        let fileName
         const dateBefore = formatYYYYMMDD(data.tanggalFrom)
         const dateNow = formatYYYYMMDD(data.tanggalTo)
         let paramIndex = 3;
@@ -505,90 +506,165 @@ const downloadReportLkf = async(data) => {
         query += ' order by fl.date, fl.shift';
     
         const result = await db.query(query, values)
-        
-        if(result.rowCount > 0) {
-            if(data.option == "Excel"){
-                const fileName = `Excel-template-LKF-${dateBefore}-${dateNow}.xlsx`
+        if(data.option == "Excel"){
+            fileName = `Excel-template-LKF-${dateBefore}-${dateNow}.xlsx`
 
-                const datas = transformData(result.rows)
-                const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift' ];
-    
-                await generateExcel(datas, headers, fileName);
-    
-                return {
-                    status: HTTP_STATUS.OK,
-                    link: fileName
-                }
-            }else if(data.option == "Elipse"){
-                const fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`
-                const headers = ['Usage Sheet Id', 'District', 'Whouseid', 'Default Usage Date', 'Usage Date(YYYYMMDD)',
-                'Equip Ref', 'Account Code', 'Bulk Mat Type', 'Quantity'];
+            const datas = transformData(result.rows)
+            const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift' ];
 
-                convertedArray = result.rows.map(val => {
-                    const usage_sheet = `LKF_${(formatedMonth(val.date))}`;
-                    const accountCode = "12231004601"
-                    const bulkMat = 'F001'
-                    return [
-                        usage_sheet,
-                        val.site,
-                        "PIT A",
-                        formatedDatesYYYYMMDD(val.date),
-                        formatedDatesYYYYMMDD(val.date),
-                        val.no_unit,
-                        accountCode,
-                        bulkMat,
-                        val.qty
-                    ]
-                });
-    
-                await generateElipse(convertedArray, headers, fileName);
-    
-                return {
-                    status: HTTP_STATUS.OK,
-                    link: fileName
-                }
-            }else{
-                const fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}-Raw.xlsx`
-                const headers = ['NOMOR_LKF', 'DATE', 'SHIFT', 'HM_AWAL', 'HM_AKHIR', 'LOCATION', 'ID_FUELMAN',
-                'STATION', 'OPENING_DIP', 'CLOSING_DIP', 'OPENING_SONDING', 'CLOSING_SONDING', 'FLOW_METER_START',
-                'FLOW_METER_END', 'TOTAL_METER', 'STATUS', 'NOTES', 'LOGIN_TIME', 'LOGOUT_TIME', 'CREATED_AT', 'UPDATED_AT'];
-    
-                convertedArray = result.rows.map(val => [
-                    val.lkf_id,
-                    val.date,
-                    val.shift,
-                    val.hm_start,
-                    val.hm_end,
-                    val.site,
-                    val.fuelman_id,
-                    val.station,
-                    val.opening_dip,
-                    val.closing_dip,
-                    val.opening_sonding,
-                    val.closing_sonding,
-                    val.flow_meter_start,
-                    val.flow_meter_end,
-                    val.flow_meter_end - val.flow_meter_start,
-                    val.status,
-                    val.notes,
-                    val.login_time,
-                    val.logout_time,
-                    val.created_at,
-                    val.updated_at
-                ]);
-                await generateRaw(convertedArray, headers, fileName);
-    
-                return {
-                    status: HTTP_STATUS.OK,
-                    link: fileName
-                }
-            }
-        }else{
+            await generateExcel(datas, headers, fileName);
+
             return {
                 status: HTTP_STATUS.OK,
-                // link: fileName
+                link: fileName
+            }
+        }else if(data.option == "Elipse"){
+            fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`
+            const headers = ['Usage Sheet Id', 'District', 'Whouseid', 'Default Usage Date', 'Usage Date(YYYYMMDD)',
+            'Equip Ref', 'Account Code', 'Bulk Mat Type', 'Quantity'];
+
+            convertedArray = result.rows.map(val => {
+                const usage_sheet = `LKF_${(formatedMonth(val.date))}`;
+                const accountCode = "12231004601"
+                const bulkMat = 'F001'
+                return [
+                    usage_sheet,
+                    val.site,
+                    "PIT A",
+                    formatedDatesYYYYMMDD(val.date),
+                    formatedDatesYYYYMMDD(val.date),
+                    val.no_unit,
+                    accountCode,
+                    bulkMat,
+                    val.qty
+                ]
+            });
+
+            await generateElipse(convertedArray, headers, fileName);
+
+            return {
+                status: HTTP_STATUS.OK,
+                link: fileName
+            }
+        }else{
+            fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}-Raw.xlsx`
+            const headers = ['NOMOR_LKF', 'DATE', 'SHIFT', 'HM_AWAL', 'HM_AKHIR', 'LOCATION', 'ID_FUELMAN',
+            'STATION', 'OPENING_DIP', 'CLOSING_DIP', 'OPENING_SONDING', 'CLOSING_SONDING', 'FLOW_METER_START',
+            'FLOW_METER_END', 'TOTAL_METER', 'STATUS', 'NOTES', 'LOGIN_TIME', 'LOGOUT_TIME', 'CREATED_AT', 'UPDATED_AT'];
+
+            convertedArray = result.rows.map(val => [
+                val.lkf_id,
+                val.date,
+                val.shift,
+                val.hm_start,
+                val.hm_end,
+                val.site,
+                val.fuelman_id,
+                val.station,
+                val.opening_dip,
+                val.closing_dip,
+                val.opening_sonding,
+                val.closing_sonding,
+                val.flow_meter_start,
+                val.flow_meter_end,
+                val.flow_meter_end - val.flow_meter_start,
+                val.status,
+                val.notes,
+                val.login_time,
+                val.logout_time,
+                val.created_at,
+                val.updated_at
+            ]);
+            await generateRaw(convertedArray, headers, fileName);
+
+            return {
+                status: HTTP_STATUS.OK,
+                link: fileName
             }
         }
+        // if(result.rowCount > 0) {
+        //     if(data.option == "Excel"){
+        //         fileName = `Excel-template-LKF-${dateBefore}-${dateNow}.xlsx`
+
+        //         const datas = transformData(result.rows)
+        //         const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift' ];
+    
+        //         await generateExcel(datas, headers, fileName);
+    
+        //         return {
+        //             status: HTTP_STATUS.OK,
+        //             link: fileName
+        //         }
+        //     }else if(data.option == "Elipse"){
+        //         fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`
+        //         const headers = ['Usage Sheet Id', 'District', 'Whouseid', 'Default Usage Date', 'Usage Date(YYYYMMDD)',
+        //         'Equip Ref', 'Account Code', 'Bulk Mat Type', 'Quantity'];
+
+        //         convertedArray = result.rows.map(val => {
+        //             const usage_sheet = `LKF_${(formatedMonth(val.date))}`;
+        //             const accountCode = "12231004601"
+        //             const bulkMat = 'F001'
+        //             return [
+        //                 usage_sheet,
+        //                 val.site,
+        //                 "PIT A",
+        //                 formatedDatesYYYYMMDD(val.date),
+        //                 formatedDatesYYYYMMDD(val.date),
+        //                 val.no_unit,
+        //                 accountCode,
+        //                 bulkMat,
+        //                 val.qty
+        //             ]
+        //         });
+    
+        //         await generateElipse(convertedArray, headers, fileName);
+    
+        //         return {
+        //             status: HTTP_STATUS.OK,
+        //             link: fileName
+        //         }
+        //     }else{
+        //         fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}-Raw.xlsx`
+        //         const headers = ['NOMOR_LKF', 'DATE', 'SHIFT', 'HM_AWAL', 'HM_AKHIR', 'LOCATION', 'ID_FUELMAN',
+        //         'STATION', 'OPENING_DIP', 'CLOSING_DIP', 'OPENING_SONDING', 'CLOSING_SONDING', 'FLOW_METER_START',
+        //         'FLOW_METER_END', 'TOTAL_METER', 'STATUS', 'NOTES', 'LOGIN_TIME', 'LOGOUT_TIME', 'CREATED_AT', 'UPDATED_AT'];
+    
+        //         convertedArray = result.rows.map(val => [
+        //             val.lkf_id,
+        //             val.date,
+        //             val.shift,
+        //             val.hm_start,
+        //             val.hm_end,
+        //             val.site,
+        //             val.fuelman_id,
+        //             val.station,
+        //             val.opening_dip,
+        //             val.closing_dip,
+        //             val.opening_sonding,
+        //             val.closing_sonding,
+        //             val.flow_meter_start,
+        //             val.flow_meter_end,
+        //             val.flow_meter_end - val.flow_meter_start,
+        //             val.status,
+        //             val.notes,
+        //             val.login_time,
+        //             val.logout_time,
+        //             val.created_at,
+        //             val.updated_at
+        //         ]);
+        //         await generateRaw(convertedArray, headers, fileName);
+    
+        //         return {
+        //             status: HTTP_STATUS.OK,
+        //             link: fileName
+        //         }
+        //     }
+        // }else{
+        //     return {
+        //         status: HTTP_STATUS.OK,
+        //         // link: fileName
+        //     }
+        // }
     }catch(error){
         logger.error(error)
         return {
@@ -1120,8 +1196,7 @@ const DailyConsumtion = async(data) => {
 
         return {
             status: HTTP_STATUS.OK,
-            link: fileNames,
-            res: result
+            link: fileNames
         }
     }catch(error){
         logger.error(error)
@@ -1892,8 +1967,8 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
         };
         nightShiftCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-        console.log(`${getExcelColumnName(6 + index * 2 )}6`)
-        console.log(index)
+        // console.log(`${getExcelColumnName(6 + index * 2 )}6`)
+        // console.log(index)
 
         // // Mengatur header Qty dan HM pada baris 6
         const qtyCol = sheet.getCell(`${startCol}6`);
@@ -2266,7 +2341,7 @@ const renderTable = (title, data, totalQty, sheet, startRow) => {
     if(title == 'Owner'){
         headerRow = sheet.insertRow(startRow, ['', title, ...uniqueDates, 'Summary', 'Average']); 
     }else{
-        console.log(uniqueDates)
+        // console.log(uniqueDates)
         const headerRowValues = ['', title, ...Array(uniqueDates.length).fill(''), '', ''];
         headerRow = sheet.insertRow(startRow, headerRowValues);
         sheet.mergeCells(headerRow.number, 3, headerRow.number, uniqueDates.length + 1);
