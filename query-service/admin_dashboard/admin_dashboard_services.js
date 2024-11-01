@@ -5,14 +5,16 @@ const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
 const getTotalDashboard = async (params) => {
     try {
-        let result
         const dateNow = formatYYYYMMDD(params.tanggal)
         const dateBefore = formatDateOption(params.option, dateNow)
-        result = await filterData(params.tanggal, false)
+        const prevDate = prevFormatYYYYMMDD(dateNow)
+        const prevDateBefore = prevFormatYYYYMMDD(dateBefore)
+        const prevClosing = await db.query(QUERY_STRING.getClosingDip,[prevDateBefore, prevDate])
         let dataSonding = await db.query(QUERY_STRING.getTotalSonding,[dateBefore, dateNow])
         let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
+        const interShiftND = prevClosing.rows[0].total_before - dataSonding.rows[0].total_opening
         const data = { 
-            prevSonding : result.dataClosingPrev ? result.dataClosingPrev.toLocaleString('en-US') : 0,
+            prevSonding : prevClosing.rows[0].total_before ? prevClosing.rows[0].total_before.toLocaleString('en-US') : 0,
             openSonding : dataSonding.rows[0].total_opening ? dataSonding.rows[0].total_opening.toLocaleString('en-US') : 0,
             reciptKpc: dataType.rows[0].total_receive_kpc ? dataType.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
@@ -20,10 +22,11 @@ const getTotalDashboard = async (params) => {
             closeData: dataType.rows[0].total_close_data ? dataType.rows[0].total_close_data.toLocaleString('en-US') : 0,
             closeSonding: dataType.rows[0].total_closing ? dataType.rows[0].total_closing.toLocaleString('en-US') : 0,
             variant: dataType.rows[0].total_variant ? dataType.rows[0].total_variant.toLocaleString('en-US') : 0,
-            intershiftNtoD: result.interShiftNtoDs ?  result.interShiftNtoDs.toLocaleString('en-US') : 0,
-            intershiftDtoN: result.interShiftDtoNs ? result.interShiftDtoNs.toLocaleString('en-US') : 0
+            intershiftNtoD: interShiftND ?  interShiftND.toLocaleString('en-US') : 0,
+            // intershiftDtoN: result.interShiftDtoNs ? result.interShiftDtoNs.toLocaleString('en-US') : 0
         }
         return data
+        // return false
     } catch (error) {
         logger.error(error)
         console.error('Error during update:', error);

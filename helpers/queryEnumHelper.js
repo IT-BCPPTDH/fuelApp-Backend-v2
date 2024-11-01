@@ -303,7 +303,10 @@ GROUP BY
     left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl.lkf_id = $1
     group by fl."date", fl.fuelman_id, opening_sonding, closing_sonding, fl.opening_dip, fl.closing_dip,fl.flow_meter_start, 
-    fl.variant,fl.close_data, fl.flow_meter_end,fl.opening_sonding, fl.hm_start, fl.hm_end, fl.shift, fl.station`
+    fl.variant,fl.close_data, fl.flow_meter_end,fl.opening_sonding, fl.hm_start, fl.hm_end, fl.shift, fl.station`,
+
+    getClosingDip : `select sum(fl.closing_dip) as total_before from form_lkf fl 
+    where fl."date" between $1 and $2 and fl.shift = 'Night'`
 }
 
 module.exports = {
