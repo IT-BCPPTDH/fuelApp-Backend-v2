@@ -10,9 +10,7 @@ exports.up = function(knex) {
         table.string('model_unit', 50).nullable();
         table.string('owner', 50).nullable();
         table.timestamp('date_trx').nullable();
-        // table.float('hm_last', 20);
         table.float('hm_km', 20).nullable();
-        // table.float('qty_last', 20).nullable();
         table.float('qty', 20).nullable();
         table.float('flow_start', 20).nullable();
         table.float('flow_end', 20).nullable();
