@@ -728,8 +728,8 @@ const downloadHomeStation = async(data) => {
             val.total_closing,
             val.total_close_data,
             val.total_variant,
-            val.intershifNtoD,
-            val.intershifDtoN,
+            val.intershiftNtoD,
+            val.intershiftDtoN,
         ]);
 
         const totals = functionTotal(result)
@@ -740,7 +740,6 @@ const downloadHomeStation = async(data) => {
             status: HTTP_STATUS.OK,
             link: fileNames
         }
-
     }catch(error){
         logger.error(error)
         return {
@@ -817,8 +816,8 @@ const generateReportStation = (data, totalQty, headers, fileName) => {
         totalQty.totalClosing.toLocaleString('en-US'),
         totalQty.totalCloseData.toLocaleString('en-US'),
         totalQty.totalVariant.toLocaleString('en-US'),
-        0,
-        0
+        totalQty.totalNtoD.toLocaleString('en-US'),
+        totalQty.totalDtoN.toLocaleString('en-US'),
     ];
 
     const excelTotalRow = sheet.addRow(['',...totalRow]);
@@ -900,6 +899,7 @@ const functionTotal = (data) => {
         const totalVariant = typeof item.total_variant === 'string' 
             ? Number(item.total_variant.replace(/,/g, '')) 
             : Number(item.total_variant) || 0;
+
         const totalCloseData = typeof item.total_close_data === 'string' 
             ? Number(item.total_close_data.replace(/,/g, '')) 
             : Number(item.total_close_data) || 0;
@@ -907,6 +907,14 @@ const functionTotal = (data) => {
         const totalIssued = typeof item.total_issued === 'string' 
             ? Number(item.total_issued.replace(/,/g, '')) 
             : Number(item.total_issued) || 0;
+
+        const totalNtoD = typeof item.intershiftNtoD === 'string' 
+            ? Number(item.intershiftNtoD.replace(/,/g, '')) 
+            : Number(item.intershiftNtoD) || 0;
+
+        const totalDtoN = typeof item.intershiftDtoN === 'string' 
+            ? Number(item.intershiftDtoN.replace(/,/g, '')) 
+            : Number(item.intershiftDtoN) || 0;
     
         // Update the accumulator
         acc.total_opening += totalOpening;
@@ -917,10 +925,12 @@ const functionTotal = (data) => {
         acc.totalTransfer += totalTransfer;
         acc.totalVariant += totalVariant;
         acc.totalCloseData += totalCloseData;
+        acc.totalNtoD += totalNtoD;
+        acc.totalDtoN += totalDtoN;
     
         return acc;
     }, { total_opening: 0,totalKpc: 0, total_issued: 0, totalCloseData: 0,
-    totalClosing: 0, totalReceipt: 0, totalTransfer:0, totalVariant:0 });
+    totalClosing: 0, totalReceipt: 0, totalTransfer:0, totalVariant:0, totalNtoD:0,  totalDtoN:0});
 
     return totals
 }
