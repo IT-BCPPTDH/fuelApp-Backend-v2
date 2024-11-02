@@ -10,23 +10,26 @@ const getTotalDashboard = async (params) => {
         const prevDate = prevFormatYYYYMMDD(dateNow)
         const prevDateBefore = prevFormatYYYYMMDD(dateBefore)
         const prevClosing = await db.query(QUERY_STRING.getClosingDip,[prevDateBefore, prevDate])
+        const queryDtoN = await db.query(QUERY_STRING.getDtoN,[dateBefore, dateNow])
+        const jmlQueryDtoN = queryDtoN.rows[0].total_opening_dip_night - queryDtoN.rows[0].total_closing_dip_day 
         let dataSonding = await db.query(QUERY_STRING.getTotalSonding,[dateBefore, dateNow])
         let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
-        const interShiftND = prevClosing.rows[0].total_before - dataSonding.rows[0].total_opening
+        const interShiftND = dataSonding.rows[0].total_opening - prevClosing.rows[0].total_before 
+        const closedData = dataSonding.rows[0].total_opening + dataType.rows[0].total_receive_kpc - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
+        const variants = dataType.rows[0].total_closing - closedData
         const data = { 
             prevSonding : prevClosing.rows[0].total_before ? prevClosing.rows[0].total_before.toLocaleString('en-US') : 0,
             openSonding : dataSonding.rows[0].total_opening ? dataSonding.rows[0].total_opening.toLocaleString('en-US') : 0,
             reciptKpc: dataType.rows[0].total_receive_kpc ? dataType.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
             tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
-            closeData: dataType.rows[0].total_close_data ? dataType.rows[0].total_close_data.toLocaleString('en-US') : 0,
+            closeData: dataType.rows[0].total_close_data == null ? closedData.toLocaleString('en-US') : dataType.rows[0].total_close_data.toLocaleString('en-US'),
             closeSonding: dataType.rows[0].total_closing ? dataType.rows[0].total_closing.toLocaleString('en-US') : 0,
-            variant: dataType.rows[0].total_variant ? dataType.rows[0].total_variant.toLocaleString('en-US') : 0,
+            variant: dataType.rows[0].total_variant == null ? variants.toLocaleString('en-US') : dataType.rows[0].total_variant.toLocaleString('en-US'),
             intershiftNtoD: interShiftND ?  interShiftND.toLocaleString('en-US') : 0,
-            // intershiftDtoN: result.interShiftDtoNs ? result.interShiftDtoNs.toLocaleString('en-US') : 0
+            intershiftDtoN: jmlQueryDtoN ? jmlQueryDtoN.toLocaleString('en-US') : 0
         }
         return data
-        // return false
     } catch (error) {
         logger.error(error)
         console.error('Error during update:', error);
@@ -39,43 +42,124 @@ const getTableDashboard = async (params) => {
         let result
         const dateNow = formatYYYYMMDD(params.tanggal)
         const dateBefore = formatDateOption(params.option, dateNow)
-        const getDataStations =  await db.query(QUERY_STRING.getTotals, [dateBefore, dateNow])
-        result = await filterData(params.tanggal, true)
-        const mergedData = (getDataStations?.rows || []).map(itemA => {
-            const matchingItemB = Array.isArray(result) 
-              ? result.find(itemB => itemB.station === itemA.station) 
-              : undefined;
-          
-            if (matchingItemB) {
-              return {
-                ...itemA,
-                date: formatDateToDDMMYYYY(matchingItemB.date),
-                // closeDataPrev: matchingItemB.closeDataPrev,
-                // variants: matchingItemB.variants,
-                interShift: matchingItemB.interShift
-              };
+        const prevDate = prevFormatYYYYMMDD(dateNow)
+        const prevDateBefore = prevFormatYYYYMMDD(dateBefore)
+        const getFormStations =  await db.query(QUERY_STRING.getFormSum, [dateBefore, dateNow])
+        const getLkfStations =  await db.query(QUERY_STRING.getLkfSum, [dateBefore, dateNow])
+        const queryIntershiftDtoN =  await db.query(QUERY_STRING.stationDtoN, [dateBefore, dateNow])
+        const interDtoN = await calculateDifferences(queryIntershiftDtoN.rows)
+        const queryClosingBefore = await db.query(QUERY_STRING.closingPrevStation, [prevDateBefore, prevDate])
+        const queryOpeningDay = await db.query(QUERY_STRING.openingDipDay, [dateBefore, dateNow])
+        const calcNtoD = await calculateDifferencesNtoD(queryOpeningDay.rows, queryClosingBefore.rows)
+        const mergedArray = getLkfStations.rows.map(itemA => {
+            const matchingItem = getFormStations.rows.find(itemB => itemB.station === itemA.station);
+            const matchingItem3 = interDtoN.find(item3 => item3.station === itemA.station);
+            const matchingItem4 = calcNtoD.find(item4 => item4.station === itemA.station);
+            const closedData = itemA.total_opening + matchingItem.total_receive_kpc + matchingItem.total_receive - matchingItem.total_issued - matchingItem.total_transfer
+            const variant = itemA.total_closing - closedData
+            if (matchingItem) {
+                return {
+                    station: itemA.station,
+                    total_opening : itemA.total_opening ? itemA.total_opening.toLocaleString('en-US') : 0,
+                    total_closing: itemA.total_closing ?  itemA.total_closing.toLocaleString('en-US') : 0,
+                    total_issued : matchingItem.total_issued ? matchingItem.total_issued.toLocaleString('en-US') : 0,
+                    total_transfer : matchingItem.total_transfer ? matchingItem.total_transfer.toLocaleString('en-US') : 0,
+                    total_receive : matchingItem.total_receive ? matchingItem.total_receive.toLocaleString('en-US') : 0,
+                    total_receive_kpc : matchingItem.total_receive_kpc ? matchingItem.total_receive_kpc.toLocaleString('en-US'): 0,
+                    total_close_data : itemA.total_close_data == null ? closedData.toLocaleString('en-US') : itemA.total_close_data.toLocaleString('en-US'),
+                    total_variant : itemA.total_variant == null? variant.toLocaleString('en-US') : itemA.total_variant.toLocaleString('en-US'), 
+                    intershiftDtoN : matchingItem3.difference ? matchingItem3.difference.toLocaleString('en-US') : 0,
+                    intershiftNtoD : matchingItem4.difference ? matchingItem4.difference.toLocaleString('en-US') : 0,
+                };
             }
-            
-            return {
-              ...itemA,
-              date: formatDateToDDMMYYYY(itemA.date),
-              total_opening : itemA.total_opening ? itemA.total_opening.toLocaleString('en-US') : 0,
-              total_closing: itemA.total_closing ?  itemA.total_closing.toLocaleString('en-US') : 0,
-              total_issued : itemA.total_issued ? itemA.total_issued.toLocaleString('en-US') : 0,
-              total_transfer : itemA.total_transfer ? itemA.total_transfer.toLocaleString('en-US') : 0,
-              total_receive : itemA.total_receive ? itemA.total_receive.toLocaleString('en-US') : 0,
-              total_receive_kpc : itemA.total_receive_kpc ? itemA.total_receive_kpc.toLocaleString('en-US'): 0,
-              total_close_data : itemA.total_close_data ? itemA.total_close_data.toLocaleString('en-US') : 0,
-              total_variant : itemA.total_variant ? itemA.total_variant.toLocaleString('en-US') : 0
-            };
+            return itemA;
         });
-        return mergedData
+        return mergedArray
     }catch(err){
         logger.error(err)
         console.error('Error during update:', err);
         return false;
     }
 }
+
+function calculateDifferences(data) {
+    return data.map(item => {
+      const closingData = item.closing_dip_day ?? 0;
+      const openingData = item.opening_dip_night ?? 0;
+  
+      const difference = openingData - closingData;
+  
+      return {
+        ...item,
+        difference 
+      };
+    });
+}
+
+function calculateDifferencesNtoD(openingDips, closingDips) {
+    const result = openingDips.map(opening => {
+        const closing = closingDips.find(c => c.station === opening.station);
+        const closingDip = closing ? closing.closing_dip_before : 0; 
+        return {
+            station: opening.station,
+            difference: opening.opening_dip_day - closingDip 
+        };
+    });
+
+    closingDips.forEach(closing => {
+        if (!result.some(res => res.station === closing.station)) {
+            result.push({
+                station: closing.station,
+                difference: 0 - closing.closing_dip_before 
+            });
+        }
+    });
+
+    return result;
+}
+
+// const getTableDashboard = async (params) => {
+//     try{
+//         let result
+//         const dateNow = formatYYYYMMDD(params.tanggal)
+//         const dateBefore = formatDateOption(params.option, dateNow)
+//         const getDataStations =  await db.query(QUERY_STRING.getTotals, [dateBefore, dateNow])
+//         result = await filterData(params.tanggal, true)
+//         const mergedData = (getDataStations?.rows || []).map(itemA => {
+//             const matchingItemB = Array.isArray(result) 
+//               ? result.find(itemB => itemB.station === itemA.station) 
+//               : undefined;
+          
+//             if (matchingItemB) {
+//               return {
+//                 ...itemA,
+//                 date: formatDateToDDMMYYYY(matchingItemB.date),
+//                 // closeDataPrev: matchingItemB.closeDataPrev,
+//                 // variants: matchingItemB.variants,
+//                 interShift: matchingItemB.interShift
+//               };
+//             }
+            
+//             return {
+//               ...itemA,
+//               date: formatDateToDDMMYYYY(itemA.date),
+//               total_opening : itemA.total_opening ? itemA.total_opening.toLocaleString('en-US') : 0,
+//               total_closing: itemA.total_closing ?  itemA.total_closing.toLocaleString('en-US') : 0,
+//               total_issued : itemA.total_issued ? itemA.total_issued.toLocaleString('en-US') : 0,
+//               total_transfer : itemA.total_transfer ? itemA.total_transfer.toLocaleString('en-US') : 0,
+//               total_receive : itemA.total_receive ? itemA.total_receive.toLocaleString('en-US') : 0,
+//               total_receive_kpc : itemA.total_receive_kpc ? itemA.total_receive_kpc.toLocaleString('en-US'): 0,
+//               total_close_data : itemA.total_close_data ? itemA.total_close_data.toLocaleString('en-US') : 0,
+//               total_variant : itemA.total_variant ? itemA.total_variant.toLocaleString('en-US') : 0
+//             };
+//         });
+//         return mergedData
+//     }catch(err){
+//         logger.error(err)
+//         console.error('Error during update:', err);
+//         return false;
+//     }
+// }
 
 async function processShiftData(date, shift, openingSonding) {
     const getDataPrev = await db.query(QUERY_STRING.getPrevious, [date, shift]);
