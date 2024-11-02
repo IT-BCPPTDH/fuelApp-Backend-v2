@@ -310,7 +310,46 @@ GROUP BY
     fl.variant,fl.close_data, fl.flow_meter_end,fl.opening_sonding, fl.hm_start, fl.hm_end, fl.shift, fl.station`,
 
     getClosingDip : `select sum(fl.closing_dip) as total_before from form_lkf fl 
-    where fl."date" between $1 and $2 and fl.shift = 'Night'`
+    where fl."date" between $1 and $2 and fl.shift = 'Night'`,
+
+    getLkfSum : `select fl.station, SUM(fl.opening_dip) as total_opening, sum(fl.closing_dip) as total_closing, 
+    SUM(fl.close_data) as close_data, sum(fl.variant) as variant from form_lkf fl 
+    WHERE fl.date BETWEEN $1 AND $2 group by 1`,
+
+    getFormSum : `SELECT  fl.station, 
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+        FROM form_lkf fl LEFT JOIN form_data fd ON fd.lkf_id = fl.lkf_id
+        WHERE fl.date BETWEEN $1 AND $2 GROUP BY fl.station;`,
+
+    getClosingDipStation : `select sum(fl.closing_dip) as total_before from form_lkf fl 
+        where fl."date" between $1 and $2 and fl.shift = 'Night'`,
+
+    getDtoN : `SELECT SUM(CASE WHEN fl.shift = 'Day' THEN fl.closing_dip ELSE 0 END) AS total_closing_dip_day,
+        SUM(CASE WHEN fl.shift = 'Night' THEN fl.opening_dip ELSE 0 END) AS total_opening_dip_night
+        FROM form_lkf fl WHERE fl."date" between $1 and $2`,
+    
+    prevOpeningStation : `SELECT fl.station,
+    SUM(CASE WHEN fl.shift = 'Day' THEN fl.opening_dip ELSE 0 END) AS total_opening_day,
+    SUM(CASE WHEN fl.shift = 'Night' THEN fl.closing_dip ELSE 0 END) AS total_closing_night
+    FROM form_lkf fl WHERE fl."date" BETWEEN $1 AND $2
+    GROUP  fl.station`,
+
+    stationDtoN : ` SELECT fl.station,
+        (SELECT closing_dip FROM form_lkf 
+         WHERE station = fl.station AND "date" BETWEEN $1 AND $2 AND shift = 'Day' LIMIT 1) AS closing_dip_day,
+        (SELECT opening_dip FROM form_lkf WHERE station = fl.station 
+           AND "date" BETWEEN $1 AND $2 AND shift = 'Night' LIMIT 1) AS opening_dip_night
+    FROM form_lkf fl WHERE fl."date" BETWEEN $1 AND $2 
+    GROUP BY fl.station;`,
+
+    closingPrevStation : `select fl.station, fl.closing_dip as closing_dip_before from form_lkf fl 
+        where fl."date" between $1 and $2 and fl.shift = 'Night' GROUP BY 1,2`,
+
+    openingDipDay : `select fl.station, fl.opening_dip as opening_dip_day from form_lkf fl 
+        where fl."date" between $1 and $2 and fl.shift = 'Day' GROUP By 1,2`,
 }
 
 module.exports = {
