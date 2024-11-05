@@ -28,9 +28,9 @@ const getSummaryUnitReq = async (params) => {
 const insertUnitReq = async (data) => {
     try {
         const dt = new Date()
-        const { date, time, shift, unit_no, model, hmkm, station, quota_request, reason, document, request_by, request_name, approve_by, 
+        const { date, time, shift, unit_no, model, hmkm,  quota_request, reason, document, request_by, request_name, approve_by, 
             approve_name, created_at, created_by} = data
-        const params = [date, time, shift, unit_no, model, hmkm, station, quota_request, reason,  document, request_by, request_name, approve_by, 
+        const params = [date, time, shift, unit_no, model, hmkm, quota_request, reason,  document, request_by, request_name, approve_by, 
             approve_name, created_at, created_by]
         let result = await db.query(QUERY_STRING.addQuota, params)
 
