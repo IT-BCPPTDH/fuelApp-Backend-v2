@@ -53,6 +53,7 @@ async function operatorCloseLkf(data) {
 }
 
 async function getLastLkf(station) {
+    console.log()
     try{
         let result = await getDataLastLkf(station)
         if(result.length > 0 ){
