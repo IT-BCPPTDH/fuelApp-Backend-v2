@@ -1,6 +1,34 @@
+// const  getLastLKF  = require("../controllers/form_lkf_controller")
+
 const QUERY_STRING = {
     // lkf
-    getLastLKF : `select * from form_lkf where station = $1 order by "date" DESC limit 1`,
+//     getLastLKF : `SELECT * 
+// FROM form_lkf fl 
+// WHERE station = $1 
+//   AND "date" = (
+//       SELECT MAX("date") 
+//       FROM form_lkf fl2 
+//       WHERE station = $1 
+//         AND updated_at < NOW()
+//   )
+// ORDER BY 
+//   CASE 
+//     WHEN shift = 'Night' THEN 1 
+//     WHEN shift = 'Day' THEN 2 
+//   END 
+// LIMIT 1;`,
+
+getLastLKF:`SELECT * 
+FROM form_lkf fl 
+WHERE station = $1 
+  AND "date" = (
+      SELECT MAX("date") 
+      FROM form_lkf 
+      WHERE station = $1
+  )
+ORDER BY updated_at DESC
+LIMIT 1;`,
+
     postFromLKF : `insert into form_lkf (lkf_id,date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding,flow_meter_start,time_opening, created_by,status)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'Open') returning *`,
     closeFromLKF:`update form_lkf set hm_end = $1, closing_dip = $2, closing_sonding = $3, flow_meter_end = $4, updated_by = $5, updated_at = $6, note = $7, signature = $8, close_data = $9, variant = $10, status = 'Close'
