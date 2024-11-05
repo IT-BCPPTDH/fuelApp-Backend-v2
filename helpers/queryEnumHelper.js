@@ -2,6 +2,7 @@
 
 const QUERY_STRING = {
     // lkf
+
 //     getLastLKF : `SELECT * 
 // FROM form_lkf fl 
 // WHERE station = $1 
@@ -28,6 +29,8 @@ WHERE station = $1
   )
 ORDER BY updated_at DESC
 LIMIT 1;`,
+
+
 
     postFromLKF : `insert into form_lkf (lkf_id,date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding,flow_meter_start,time_opening, created_by,status)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'Open') returning *`,
