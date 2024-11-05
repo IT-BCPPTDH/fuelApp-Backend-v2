@@ -462,71 +462,84 @@ const generateElipse = (data, headers, fileName) => {
     });
 }
 
-const downloadReportLkf = async(data) => {
-    try{
-        let convertedArray
-        let fileName
-        const dateBefore = formatYYYYMMDD(data.tanggalFrom)
-        const dateNow = formatYYYYMMDD(data.tanggalTo)
+const downloadReportLkf = async (data) => {
+    try {
+        let convertedArray;
+        let fileName;
+        const dateBefore = formatYYYYMMDD(data.tanggalFrom);
+        const dateNow = formatYYYYMMDD(data.tanggalTo);
         let paramIndex = 3;
-        let query = `SELECT fl.lkf_id, TO_CHAR((fl."date"::timestamp at TIME zone 'UTC' at TIME zone 'Asia/Bangkok'), 'YYYY-MM-DD') as date,
-        fl.shift, fl.site, fl.fuelman_id, fl.station, fl.opening_sonding, fl.closing_sonding, fl.opening_dip, fl.closing_dip,
-        fl.flow_meter_start, fl.flow_meter_end, fl."status", fl.note, fl.created_at, fl.updated_at, 
-        fl2.login_time, fl2.logout_time, fl.hm_start, fl.hm_end,
-        fd.no_unit,fd.qty,  fd.jde_operator as operator, fd."start", fd."end",fd.type 
-        from form_lkf fl
-        left join fuelman_log fl2 on fl.fuelman_id  = fl2.jde_operator 
-        join form_data fd on fd.lkf_id  = fl.lkf_id 
-        where fl."date" between $1 and $2`
 
-        let values = [dateBefore, dateNow]
+        // Use DISTINCT in SQL to filter duplicates at the database level
+        let query = `SELECT DISTINCT fl.lkf_id, 
+                            TO_CHAR((fl."date"::timestamp at TIME zone 'UTC' at TIME zone 'Asia/Bangkok'), 'YYYY-MM-DD') as date,
+                            fl.shift, fl.site, fl.fuelman_id, fl.station, fl.opening_sonding, fl.closing_sonding, 
+                            fl.opening_dip, fl.closing_dip, fl.flow_meter_start, fl.flow_meter_end, 
+                            fl."status", fl.note, fl.created_at, fl.updated_at, 
+                            fl2.login_time, fl2.logout_time, fl.hm_start, fl.hm_end,
+                            fd.no_unit, fd.qty, fd.jde_operator as operator, fd."start", fd."end", fd.type 
+                     FROM form_lkf fl
+                     LEFT JOIN fuelman_log fl2 ON fl.fuelman_id = fl2.jde_operator 
+                     JOIN form_data fd ON fd.lkf_id = fl.lkf_id 
+                     WHERE fl."date" BETWEEN $1 AND $2`;
 
-        if(data.station.length > 0){
-            query += ` and fl.station = ANY($${paramIndex})`
-            values.push(data.station)
+        let values = [dateBefore, dateNow];
+
+        if (data.station.length > 0) {
+            query += ` AND fl.station = ANY($${paramIndex})`;
+            values.push(data.station);
             paramIndex++;
         }
-        if(data.type !== 'All'){
-            if(data.type == 'Issued And Transfer'){
-                query += ` and fd.type IN ('Issued', 'Transfer')`
-                // values.push(data.type)
-                // paramIndex++;
-            }else if(data.type == 'Receipt Only'){
-                query += ` and fd.type IN ('Receipt')`
-            }else if(data.type == 'Issued Only'){
-                query += ` and fd.type IN ('Issued')`
-            }else if(data.type == 'Receipt KPC Only'){
-                query += ` and fd.type IN ('Receipt KPC')`
+
+        if (data.type !== 'All') {
+            if (data.type === 'Issued And Transfer') {
+                query += ` AND fd.type IN ('Issued', 'Transfer')`;
+            } else if (data.type === 'Receipt Only') {
+                query += ` AND fd.type IN ('Receipt')`;
+            } else if (data.type === 'Issued Only') {
+                query += ` AND fd.type IN ('Issued')`;
+            } else if (data.type === 'Receipt KPC Only') {
+                query += ` AND fd.type IN ('Receipt KPC')`;
             }
-            // query += ` and fd.type IN ($${paramIndex})`
-            // values.push(data.type)
-            // paramIndex++;
         }
 
-        query += ' order by fl.date, fl.shift';
-    
-        const result = await db.query(query, values)
-        if(data.option == "Excel"){
-            fileName = `Excel-template-LKF-${dateBefore}-${dateNow}.xlsx`
+        query += ' ORDER BY fl.date, fl.shift';
 
-            const datas = transformData(result.rows)
-            const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift' ];
+        const result = await db.query(query, values);
+        
+        if (result.rowCount === 0) {
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'No data found',
+            };
+        }
+
+        // Debugging: Log fetched rows
+        console.log("Fetched Rows:", result.rows);
+
+        // Filter out duplicates by a unique identifier, e.g., lkf_id
+        const uniqueRows = Array.from(new Map(result.rows.map(item => [item.lkf_id, item])).values());
+
+        if (data.option === "Excel") {
+            fileName = `Excel-${dateBefore}-${dateNow}.xlsx`;
+            const datas = transformData(uniqueRows); // Use uniqueRows
+            const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
             await generateExcel(datas, headers, fileName);
 
             return {
                 status: HTTP_STATUS.OK,
                 link: fileName
-            }
-        }else if(data.option == "Elipse"){
-            fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`
-            const headers = ['Usage Sheet Id', 'District', 'Whouseid', 'Default Usage Date', 'Usage Date(YYYYMMDD)',
-            'Equip Ref', 'Account Code', 'Bulk Mat Type', 'Quantity'];
+            };
+        } else if (data.option === "Elipse") {
+            fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`;
+            const headers = ['Usage Sheet Id', 'District', 'Whouseid', 'Default Usage Date', 'Usage Date(YYYYMMDD)', 
+                             'Equip Ref', 'Account Code', 'Bulk Mat Type', 'Quantity'];
 
-            convertedArray = result.rows.map(val => {
+            convertedArray = uniqueRows.map(val => {
                 const usage_sheet = `LKF_${(formatedMonth(val.date))}`;
-                const accountCode = "12231004601"
-                const bulkMat = 'F001'
+                const accountCode = "12231004601";
+                const bulkMat = 'F001';
                 return [
                     usage_sheet,
                     val.site,
@@ -537,7 +550,7 @@ const downloadReportLkf = async(data) => {
                     accountCode,
                     bulkMat,
                     val.qty
-                ]
+                ];
             });
 
             await generateElipse(convertedArray, headers, fileName);
@@ -545,14 +558,15 @@ const downloadReportLkf = async(data) => {
             return {
                 status: HTTP_STATUS.OK,
                 link: fileName
-            }
-        }else{
-            fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}-Raw.xlsx`
+            };
+        } else {
+            fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}-Raw.xlsx`;
             const headers = ['NOMOR_LKF', 'DATE', 'SHIFT', 'HM_AWAL', 'HM_AKHIR', 'LOCATION', 'ID_FUELMAN',
-            'STATION', 'OPENING_DIP', 'CLOSING_DIP', 'OPENING_SONDING', 'CLOSING_SONDING', 'FLOW_METER_START',
-            'FLOW_METER_END', 'TOTAL_METER', 'STATUS', 'NOTES', 'LOGIN_TIME', 'LOGOUT_TIME', 'CREATED_AT', 'UPDATED_AT'];
+                             'STATION', 'OPENING_DIP', 'CLOSING_DIP', 'OPENING_SONDING', 'CLOSING_SONDING', 
+                             'FLOW_METER_START', 'FLOW_METER_END', 'TOTAL_METER', 'STATUS', 'NOTES', 
+                             'LOGIN_TIME', 'LOGOUT_TIME', 'CREATED_AT', 'UPDATED_AT'];
 
-            convertedArray = result.rows.map(val => [
+            convertedArray = uniqueRows.map(val => [
                 val.lkf_id,
                 val.date,
                 val.shift,
@@ -575,104 +589,25 @@ const downloadReportLkf = async(data) => {
                 val.created_at,
                 val.updated_at
             ]);
+
             await generateRaw(convertedArray, headers, fileName);
 
             return {
                 status: HTTP_STATUS.OK,
                 link: fileName
-            }
+            };
         }
-        // if(result.rowCount > 0) {
-        //     if(data.option == "Excel"){
-        //         fileName = `Excel-template-LKF-${dateBefore}-${dateNow}.xlsx`
-
-        //         const datas = transformData(result.rows)
-        //         const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift' ];
-    
-        //         await generateExcel(datas, headers, fileName);
-    
-        //         return {
-        //             status: HTTP_STATUS.OK,
-        //             link: fileName
-        //         }
-        //     }else if(data.option == "Elipse"){
-        //         fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`
-        //         const headers = ['Usage Sheet Id', 'District', 'Whouseid', 'Default Usage Date', 'Usage Date(YYYYMMDD)',
-        //         'Equip Ref', 'Account Code', 'Bulk Mat Type', 'Quantity'];
-
-        //         convertedArray = result.rows.map(val => {
-        //             const usage_sheet = `LKF_${(formatedMonth(val.date))}`;
-        //             const accountCode = "12231004601"
-        //             const bulkMat = 'F001'
-        //             return [
-        //                 usage_sheet,
-        //                 val.site,
-        //                 "PIT A",
-        //                 formatedDatesYYYYMMDD(val.date),
-        //                 formatedDatesYYYYMMDD(val.date),
-        //                 val.no_unit,
-        //                 accountCode,
-        //                 bulkMat,
-        //                 val.qty
-        //             ]
-        //         });
-    
-        //         await generateElipse(convertedArray, headers, fileName);
-    
-        //         return {
-        //             status: HTTP_STATUS.OK,
-        //             link: fileName
-        //         }
-        //     }else{
-        //         fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}-Raw.xlsx`
-        //         const headers = ['NOMOR_LKF', 'DATE', 'SHIFT', 'HM_AWAL', 'HM_AKHIR', 'LOCATION', 'ID_FUELMAN',
-        //         'STATION', 'OPENING_DIP', 'CLOSING_DIP', 'OPENING_SONDING', 'CLOSING_SONDING', 'FLOW_METER_START',
-        //         'FLOW_METER_END', 'TOTAL_METER', 'STATUS', 'NOTES', 'LOGIN_TIME', 'LOGOUT_TIME', 'CREATED_AT', 'UPDATED_AT'];
-    
-        //         convertedArray = result.rows.map(val => [
-        //             val.lkf_id,
-        //             val.date,
-        //             val.shift,
-        //             val.hm_start,
-        //             val.hm_end,
-        //             val.site,
-        //             val.fuelman_id,
-        //             val.station,
-        //             val.opening_dip,
-        //             val.closing_dip,
-        //             val.opening_sonding,
-        //             val.closing_sonding,
-        //             val.flow_meter_start,
-        //             val.flow_meter_end,
-        //             val.flow_meter_end - val.flow_meter_start,
-        //             val.status,
-        //             val.notes,
-        //             val.login_time,
-        //             val.logout_time,
-        //             val.created_at,
-        //             val.updated_at
-        //         ]);
-        //         await generateRaw(convertedArray, headers, fileName);
-    
-        //         return {
-        //             status: HTTP_STATUS.OK,
-        //             link: fileName
-        //         }
-        //     }
-        // }else{
-        //     return {
-        //         status: HTTP_STATUS.OK,
-        //         // link: fileName
-        //     }
-        // }
-    }catch(error){
-        logger.error(error)
+    } catch (error) {
+        logger.error(error);
         return {
             status: HTTP_STATUS.BAD_REQUEST,
             message: `${error}`,
         };
     }
 }
+
+
+
 
 const transformData = (data) => {
     const result = [];
