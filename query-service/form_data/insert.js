@@ -3,37 +3,67 @@ const { base64ToImage } = require('../../helpers/base64toImage');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
+// const postFormData = async (data) => {
+//     try {
+//         const dt = new Date()
+        
+//         const { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data
+
+//         // let sign = await base64ToImage(signature)
+//         // let pic = await base64ToImage(photo)
+
+//         const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ]
+        
+//         let result = await db.query(QUERY_STRING.postFormData, params)
+
+//         if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
+//             const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
+
+//             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit])
+//             if(existingData.rows.length > 0){
+//                 qty += existingData.rows[0].used
+//             }
+//             const value = [qty, no_unit]
+//             const res = await db.query(query, value);
+//         }
+        
+//         if(result.rowCount>0){
+//             return true
+//         }else{
+//             return false
+//         }
+//     } catch (error) {
+//         logger.error(error)
+//         console.error('Error during update:', error);
+//         return false;
+//     }
+// };
+
+
 const postFormData = async (data) => {
     try {
-        const dt = new Date()
+        const dt = new Date();
         
-        const { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data
+        let { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data;
 
-        // let sign = await base64ToImage(signature)
-        // let pic = await base64ToImage(photo)
-
-        const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ]
+        const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ];
         
-        let result = await db.query(QUERY_STRING.postFormData, params)
+        let result = await db.query(QUERY_STRING.postFormData, params);
 
-        if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
+        if (data.no_unit.includes('LV') || data.no_unit.includes('HLV')) {
             const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
 
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit])
-            if(existingData.rows.length > 0){
-                qty += existingData.rows[0].used
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit]);
+            if (existingData.rows.length > 0) {
+                qty += existingData.rows[0].used;
             }
-            const value = [qty, no_unit]
+            const value = [qty, no_unit];
             const res = await db.query(query, value);
         }
         
-        if(result.rowCount>0){
-            return true
-        }else{
-            return false
-        }
+        return result.rowCount > 0;
     } catch (error) {
-        logger.error(error)
+        logger.error(error);
         console.error('Error during update:', error);
         return false;
     }
