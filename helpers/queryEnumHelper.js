@@ -18,17 +18,16 @@ const QUERY_STRING = {
 //   END 
 // LIMIT 1;`,
 
-getLastLKF:`SELECT * 
-FROM form_lkf fl 
-WHERE station = $1 
-  AND "date" = (
-      SELECT MAX("date") 
-      FROM form_lkf 
-      WHERE station = $1
-  )
-ORDER BY updated_at DESC
-LIMIT 1;`,
-
+    getLastLKF:`SELECT * 
+    FROM form_lkf fl 
+    WHERE station = $1 
+      AND "date" = (
+          SELECT MAX("date") 
+          FROM form_lkf 
+          WHERE station = $1
+      )
+    ORDER BY updated_at DESC
+    LIMIT 1;`,
 
 
     postFromLKF : `insert into form_lkf (lkf_id,date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding,flow_meter_start,time_opening, created_by,status)
@@ -46,6 +45,10 @@ LIMIT 1;`,
     where no_unit = $1
     ORDER BY date_trx Desc LIMIT 1;`, 
 
+    getLastDataMonth: `select * from form_data 
+    where date_trx between $1 and $2
+    ORDER BY date_trx Desc LIMIT 1`, 
+
     getExistingQuota : `select * from quota_usage where "unitNo" = $1 and "isDelete" = false`,
 
     getPreviousData: `select * from form_lkf fl where fl.station = $1
@@ -57,12 +60,15 @@ LIMIT 1;`,
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
-    getTotalSonding: `select SUM(fl.opening_dip) as total_opening from form_lkf fl 
+    getOpeningDay: `select SUM(fl.opening_dip) as total_opening from form_lkf fl 
     where fl."date" between $1 and $2 and shift = 'Day'`,
 
-    getTotalType : `select SUM(distinct fl.closing_dip) as total_closing,
-    SUM(distinct fl.close_data) As total_close_data,
-    SUM(fl.variant) As total_variant,
+    getTotalLkfs: `select SUM(fl.opening_dip) as total_opening, SUM( fl.closing_dip) as total_closing,
+    SUM(fl.close_data) As total_close_data,
+    SUM(fl.variant) As total_variant from form_lkf fl 
+    where fl."date" between $1 and $2`,
+
+    getTotalType : `select 
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END),0) AS total_receive_kpc,
@@ -234,9 +240,9 @@ GROUP BY
     fl.date, fl.station, fl.variant, fl.flow_meter_start, fl.flow_meter_end, fl.shift;  -- Tambahkan ke GROUP BY
 `,
 
-    getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
-    fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
-    where fd.lkf_id = $1`,
+    // getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
+    // fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
+    // where fd.lkf_id = $1`,
 
     getHomeTable: `select * from form_data fd 
     where fd.lkf_id = $1`,
@@ -246,6 +252,7 @@ GROUP BY
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
@@ -257,6 +264,7 @@ GROUP BY
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
@@ -268,6 +276,7 @@ GROUP BY
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
     FROM form_lkf fl
@@ -275,11 +284,9 @@ GROUP BY
     where fl."date"  between $1 and $2 and fl.station = $3`,
 
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
-    getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "isActive" = 'true'`,
-    inActiveBus : `UPDATE quota_usage SET quota = $1, "isActive" = $2 WHERE "modelUnit" = 'BUS' and "date" = $3`,
-    inActiveLV : `UPDATE quota_usage SET quota = $1, "isActive" = $2 WHERE "modelUnit" = 'LV' and "date" = $3`,
-    inActiveHLV : `UPDATE quota_usage SET quota = $1, "isActive" = $2 WHERE "modelUnit" = 'HLV' and "date" = $3`,
-    getQuota : `Select * from quota_usage where "unitNo" = $1 and "isActive" = 'true' ORDER BY "date" desc LIMIT 1`,
+    getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
+    getMaxQuota: `select max(quota) as limited_quota,max(is_active) as activated from quota_usage qu where "date" = $1 and kategori = $2`,
+    getQuota : `Select * from quota_usage where "unit_no" = $1 and "is_active" = 'true' ORDER BY "date" desc LIMIT 1`,
 
     listStasion: `SELECT station from form_lkf where "date" between $1 and $2 group by station`,
     

@@ -503,7 +503,8 @@ const downloadReportLkf = async (data) => {
             }
         }
 
-        query += ' ORDER BY fl.date, fl.shift';
+        query += ' ORDER BY fl.date, fl.shift, fl.lkf_id';
+        console.log(query)
 
         const result = await db.query(query, values);
         
@@ -522,7 +523,7 @@ const downloadReportLkf = async (data) => {
 
         if (data.option === "Excel") {
             fileName = `Excel-${dateBefore}-${dateNow}.xlsx`;
-            const datas = transformData(uniqueRows); // Use uniqueRows
+            const datas = transformData(uniqueRows); 
             const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
             await generateExcel(datas, headers, fileName);
@@ -605,9 +606,6 @@ const downloadReportLkf = async (data) => {
         };
     }
 }
-
-
-
 
 const transformData = (data) => {
     const result = [];
@@ -875,7 +873,7 @@ const downloadLkfDetailedLkf = async(data) => {
         const result = await db.query(QUERY_STRING.getHomeTable, [data.lkfId])
         const fileNames = `Excel-template-LKF-${data.lkfId}-${formatedDatesNames(data.tanggal)}.xlsx`
         const headers = ['ID-ROW', 'UNIT_NO', 'MODEL_UNIT', 'HM_KM', 'QTY_ISSUED', 'FLOWMETER_AWAL',
-        'FLOWMETER_AKHIR', 'NAMA_OPERATOR', 'ID_OPERATOR', 'REFUEL_START', 'REFUEL_STOP', 'TYPE'];
+        'FLOWMETER_AKHIR', 'NAMA_OPERATOR', 'ID_OPERATOR', 'REFUEL_START', 'REFUEL_STOP', 'TYPE', 'FBR History'];
     
         const convertedArray = result.rows.map(val => [
             val.from_data_id, 
@@ -889,7 +887,8 @@ const downloadLkfDetailedLkf = async(data) => {
             val.jde_operator,
             formattedHHMM(val.start),
             formattedHHMM(val.end),
-            val.type === "Issued" ? "I" : val.type === "Transfer" ? "T" : val.type === "Receipt" ? "R" : val.type
+            val.type === "Issued" ? "I" : val.type === "Transfer" ? "T" : val.type === "Receipt" ? "R" : val.type,
+            val.fbr
         ]);
 
         await generateLkf(convertedArray, headers, fileNames);
@@ -899,6 +898,7 @@ const downloadLkfDetailedLkf = async(data) => {
             link: fileNames
         }
     }catch(error){
+        console.log(error)
         logger.error(error)
         return {
             status: HTTP_STATUS.BAD_REQUEST,

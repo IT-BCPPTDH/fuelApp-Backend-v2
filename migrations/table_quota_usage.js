@@ -6,13 +6,14 @@ exports.up = function(knex) {
     return knex.schema.createTable('quota_usage', function(table) {
         table.increments('id').primary();
         table.date('date')
-        table.string('unitNo', 8)
-        table.string('modelUnit', 50)
+        table.string('unit_no', 8)
+        table.string('model', 50)
+        table.string('kategori', 50)
         table.float('quota', 10)
         table.float('used', 10)
         table.float('additional')
         table.boolean('isDelete').defaultTo(0);
-        table.boolean('isActive').defaultTo(1);
+        table.boolean('is_active').defaultTo(1);
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
     });

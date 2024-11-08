@@ -12,27 +12,33 @@ const getTotalStation = async (params) => {
         const totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateBefore, dateNow, station])
         const stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateBefore,dateNow, station])
         const stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
+        const closedData = totalStation.rows[0].total_open + totalStation.rows[0].total_receive_kpc + totalStation.rows[0].total_receive - totalStation.rows[0].total_issued - totalStation.rows[0].total_transfer
+        const variance = totalStation.rows[0].total_close - closedData
+        const closedDataDay = stationShiftDay.rows[0].total_open + stationShiftDay.rows[0].total_receive_kpc + stationShiftDay.rows[0].total_receive - stationShiftDay.rows[0].total_issued - stationShiftDay.rows[0].total_transfer
+        const varianceDay = stationShiftDay.rows[0].total_close - closedDataDay
+        const closedDataNight = stationShiftNight?.rows[0]?.total_open + stationShiftNight?.rows[0]?.total_receive_kpc + stationShiftNight?.rows[0]?.total_receive - stationShiftNight?.rows[0]?.total_issued - stationShiftNight?.rows[0]?.total_transfer
+        const varianceNight = stationShiftNight?.rows[0]?.total_close - closedDataNight
         data = { 
             totalAllOpening : totalStation.rows[0].total_open ? totalStation.rows[0].total_open.toLocaleString('en-US') : 0,
             totalAllClosing :  totalStation.rows[0].total_close ? totalStation.rows[0].total_close.toLocaleString('en-US') : 0,
             totalAllIssued: totalStation.rows[0].total_issued ? totalStation.rows[0].total_issued.toLocaleString('en-US') : 0,
             totalAllReceipt : totalStation.rows[0].total_receive ? totalStation.rows[0].total_receive.toLocaleString('en-US') : 0,
             totalAllCloseData: totalStation.rows[0].close_data ? totalStation.rows[0].close_data.toLocaleString('en-US') : 0,
-            totalAllVariance: totalStation.rows[0].variant ? totalStation.rows[0].variant.toLocaleString('en-US') : 0,
+            totalAllVariance: totalStation.rows[0].variant == null ? variance : totalStation.rows[0].variant.toLocaleString('en-US'),
             totalAllKpc: totalStation.rows[0].total_receive_kpc ? totalStation.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             totalAllOpeningDay : stationShiftDay?.rows[0]?.total_open ? stationShiftDay.rows[0].total_open.toLocaleString('en-US') : 0,
             totalAllClosingDay :  stationShiftDay?.rows[0]?.total_close ? stationShiftDay.rows[0].total_close.toLocaleString('en-US') : 0,
             totalAllIssuedDay: stationShiftDay?.rows[0]?.total_issued ? stationShiftDay.rows[0].total_issued.toLocaleString('en-US') : 0,
             totalAllReceiptDay : stationShiftDay?.rows[0]?.total_receive ? stationShiftDay.rows[0].total_receive.toLocaleString('en-US') : 0,
             totalAllCloseDataDay : stationShiftDay?.rows[0]?.close_data ? stationShiftDay.rows[0].close_data.toLocaleString('en-US') : 0,
-            totalAllVarianceDay : stationShiftDay?.rows[0]?.variant ? stationShiftDay.rows[0].variant.toLocaleString('en-US') : 0,
+            totalAllVarianceDay : stationShiftDay?.rows[0]?.variant == null ? varianceDay : stationShiftDay.rows[0].variant.toLocaleString('en-US'),
             totalAllKpcDay: stationShiftDay?.rows[0]?.total_receive_kpc ? stationShiftDay.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             totalAllOpeningNigth : stationShiftNight?.rows[0]?.total_open ? stationShiftNight.rows[0].total_open.toLocaleString('en-US') : 0,
             totalAllClosingNigth :  stationShiftNight?.rows[0]?.total_close ? stationShiftNight.rows[0].total_close.toLocaleString('en-US') : 0,
             totalAllIssuedNigth : stationShiftNight?.rows[0]?.total_issued ? stationShiftNight.rows[0].total_issued.toLocaleString('en-US') : 0,
             totalAllReceiptNigth : stationShiftNight?.rows[0]?.total_receive ? stationShiftNight.rows[0].total_receive.toLocaleString('en-US') : 0,
             totalAllCloseDataNigth : stationShiftNight?.rows[0]?.close_data ? stationShiftNight.rows[0].close_data.toLocaleString('en-US') : 0,
-            totalAllVarianceNigth : stationShiftNight?.rows[0]?.variant ? stationShiftNight.rows[0].variant.toLocaleString('en-US') : 0,
+            totalAllVarianceNigth : stationShiftNight?.rows[0]?.variant == null ? varianceNight : stationShiftNight.rows[0].variant.toLocaleString('en-US'),
             totalAllKpcNigth: stationShiftNight?.rows[0]?.total_receive_kpc ? stationShiftNight.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
         }
         return data

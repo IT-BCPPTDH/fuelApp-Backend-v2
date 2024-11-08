@@ -30,7 +30,6 @@ async function getSummaryData(data) {
 async function getSummaryTab(data) {
     try{
         let result = await getHomeTab(data)
-        console.log("t",result)
         if(result){
             return {
                 status: HTTP_STATUS.OK,
