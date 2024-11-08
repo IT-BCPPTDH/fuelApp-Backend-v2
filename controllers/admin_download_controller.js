@@ -526,8 +526,7 @@ const downloadReportLkf = async (data) => {
             const datas = transformData(uniqueRows); 
             const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
-            // await generateExcel(datas, headers, fileName);
-            console.log(result.rows)
+            await generateExcel(datas, headers, fileName);
 
             return {
                 status: HTTP_STATUS.OK,
