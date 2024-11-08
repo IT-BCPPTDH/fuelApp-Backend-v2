@@ -50,14 +50,14 @@ const postFormData = async (data) => {
         
         let result = await db.query(QUERY_STRING.postFormData, params);
 
-        if (data.no_unit.includes('LV') || data.no_unit.includes('HLV')) {
-            const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
+        if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
+            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
 
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit]);
             if (existingData.rows.length > 0) {
                 qty += existingData.rows[0].used;
             }
-            const value = [qty, no_unit];
+            const value = [qty, no_unit, date_trx]
             const res = await db.query(query, value);
         }
         
@@ -90,8 +90,8 @@ const insertToForm = async (dataJson) => {
                 dataJson.qty += existingData.rows[0].used
             }
 
-            const params = [dataJson.qty, dataJson.no_unit]
-            const query = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2`;
+            const params = [dataJson.qty, dataJson.no_unit, dataJson.date_trx]
+            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
             const res = await db.query(query, params)
         }
 

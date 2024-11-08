@@ -12,20 +12,21 @@ const getTotalDashboard = async (params) => {
         const prevClosing = await db.query(QUERY_STRING.getClosingDip,[prevDateBefore, prevDate])
         const queryDtoN = await db.query(QUERY_STRING.getDtoN,[dateBefore, dateNow])
         const jmlQueryDtoN = queryDtoN.rows[0].total_opening_dip_night - queryDtoN.rows[0].total_closing_dip_day 
-        let dataSonding = await db.query(QUERY_STRING.getTotalSonding,[dateBefore, dateNow])
+        let dataOpening = await db.query(QUERY_STRING.getOpeningDay,[dateBefore, dateNow])
+        let dataLkfs = await db.query(QUERY_STRING.getTotalLkfs,[dateBefore, dateNow])
         let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
-        const interShiftND = dataSonding.rows[0].total_opening - prevClosing.rows[0].total_before 
-        const closedData = dataSonding.rows[0].total_opening + dataType.rows[0].total_receive_kpc - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
-        const variants = dataType.rows[0].total_closing - closedData
+        const interShiftND = dataLkfs.rows[0].total_opening - prevClosing.rows[0].total_before 
+        const closedData = (dataLkfs.rows[0].total_opening + dataType.rows[0].total_receive_kpc) - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
+        const variants = dataLkfs.rows[0].total_closing - closedData
         const data = { 
             prevSonding : prevClosing.rows[0].total_before ? prevClosing.rows[0].total_before.toLocaleString('en-US') : 0,
-            openSonding : dataSonding.rows[0].total_opening ? dataSonding.rows[0].total_opening.toLocaleString('en-US') : 0,
+            openSonding : dataOpening.rows[0].total_opening ? dataOpening.rows[0].total_opening.toLocaleString('en-US') : 0,
             reciptKpc: dataType.rows[0].total_receive_kpc ? dataType.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
             tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
-            closeData: dataType.rows[0].total_close_data == null ? closedData.toLocaleString('en-US') : dataType.rows[0].total_close_data.toLocaleString('en-US'),
-            closeSonding: dataType.rows[0].total_closing ? dataType.rows[0].total_closing.toLocaleString('en-US') : 0,
-            variant: dataType.rows[0].total_variant == null ? variants.toLocaleString('en-US') : dataType.rows[0].total_variant.toLocaleString('en-US'),
+            closeData: dataLkfs.rows[0].total_close_data === null ? closedData.toLocaleString('en-US') : dataLkfs.rows[0].total_close_data.toLocaleString('en-US'),
+            closeSonding: dataLkfs.rows[0].total_closing ? dataLkfs.rows[0].total_closing.toLocaleString('en-US') : 0,
+            variant: dataLkfs.rows[0].total_variant == null ? variants.toLocaleString('en-US') : dataLkfs.rows[0].total_variant.toLocaleString('en-US'),
             intershiftNtoD: interShiftND ?  interShiftND.toLocaleString('en-US') : 0,
             intershiftDtoN: jmlQueryDtoN ? jmlQueryDtoN.toLocaleString('en-US') : 0
         }

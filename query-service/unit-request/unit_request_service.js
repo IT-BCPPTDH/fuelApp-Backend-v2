@@ -35,9 +35,9 @@ const insertUnitReq = async (data) => {
         let result = await db.query(QUERY_STRING.addQuota, params)
 
         if(data.unit_no.includes('LV') || data.unit_no.includes('HLV')){
-            const query = `UPDATE quota_usage SET additional = $1 WHERE "unitNo" = $2`;
+            const query = `UPDATE quota_usage SET additional = $1 WHERE "unit_no" = $2 and "date" = $3`;
 
-            const value = [quota_request, unit_no]
+            const value = [quota_request, unit_no, date]
             const res = await db.query(query, value);
         }
 
@@ -46,6 +46,7 @@ const insertUnitReq = async (data) => {
         }else{
             return false
         }
+        
     } catch (error) {
         logger.error(error)
         console.error('Error during update:', error);
