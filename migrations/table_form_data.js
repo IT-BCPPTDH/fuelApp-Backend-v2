@@ -6,7 +6,7 @@ exports.up = function(knex) {
     return knex.schema.createTable('form_data', function(table) {
         table.increments('id').primary();
         table.string('from_data_id', 20).notNullable();
-        table.string('no_unit', 8).notNullable();
+        table.string('no_unit', 20).notNullable();
         table.string('model_unit', 50).nullable();
         table.string('owner', 50).nullable();
         table.timestamp('date_trx').nullable();
@@ -16,8 +16,8 @@ exports.up = function(knex) {
         table.float('flow_end', 20).nullable();
         table.string('jde_operator', 20).nullable();
         table.string('name_operator', 50).nullable();
-        table.time('start').notNullable();
-        table.time('end').notNullable();
+        table.time('start').nullable();
+        table.time('end').nullable();
         table.float('fbr', 20).nullable();
         table.string('lkf_id',20).notNullable();
         table.string('signature', 255).nullable();

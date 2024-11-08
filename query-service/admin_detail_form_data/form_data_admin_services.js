@@ -127,7 +127,7 @@ const insertBulkData = async(header, dataArray, userData) => {
                 const totalActual = dataJson.qty + limitQuota.rows[0].used;
                 if(limitQuota.rows[0].quota > totalActual){
                     const params = [dataJson.qty, dataJson.no_unit, dateNow];
-                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unitNo" = $2 and "date" = $3`;
+                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
                     await db.query(updateQuotaQuery, params);
                     await db.query(createOperatorQuery, values);
                 }else{

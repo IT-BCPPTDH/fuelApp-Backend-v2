@@ -1,19 +1,21 @@
 const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 // const bulkData = require('../data-json/operator.json')
-const { insertToOperator, getTotal, updateActive} = require('../query-service/quota_usage/quota_usage_service')
+const { insertToOperator, getTotal, updateActive, updateModel} = require('../query-service/quota_usage/quota_usage_service')
 const cron = require('node-cron');
 const logger = require("../helpers/pinoLog");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
-const { getUnitLvProto } = require('../helpers/proto/master-data')
+const { getUnitLvProto } = require('../helpers/proto/master-data');
+const { formatYYYYMMDD } = require('../helpers/dateHelper');
 
-async function bulkInsertQuotaDaily(){
+
+async function bulkInsertQuotaDaily(bodyParams){
     try{
-        const today = new Date().toISOString().split('T')[0];
         const getUnit = await getUnitLvProto()
         const unit = JSON.parse(getUnit.data)
+        const date = formatYYYYMMDD(bodyParams.tanggal)
         const data = {
-            tanggal : today,
+            tanggal : date,
             option: 'Daily'
         }
         const checkData = await getTotal(data)
@@ -23,16 +25,16 @@ async function bulkInsertQuotaDaily(){
                 message: "Succesfully fetch data!",
                 data:checkData
             }
-        }else{
-            for (let index = 0; index < unit.length; index++) {
-                const element = unit[index];
-                const inserted = await insertToOperator(element)
-            }
-            
-            return {
-              status: HTTP_STATUS.OK,
-              message: "Succesfully insert data!"
-            }
+        }
+        
+        for (let index = 0; index < unit.length; index++) {
+            const element = unit[index];
+            const inserted = await insertToOperator(element, date)
+        }
+        
+        return {
+          status: HTTP_STATUS.OK,
+          message: "Succesfully insert data!"
         }
     }catch(error){
         return {
@@ -49,7 +51,8 @@ cron.schedule('0 6 * * *', async () => {
   console.log("Loading for insert data at midnight...");
 
   try {
-    const data = await bulkInsertQuotaDaily();
+    const today = new Date().toISOString().split('T')[0];
+    const data = await bulkInsertQuotaDaily({tanggal: today});
     console.log("Done insert data!");
     return {
         status:HTTP_STATUS.OK,
@@ -138,10 +141,11 @@ async function getActiveData(params) {
     }
 }
 
-async function disableBus(params) {
+async function getStatuBus(params) {
     try{
-        let {opt, tanggal} = params
-        let result = await db.query(QUERY_STRING.inActiveBus, [opt, tanggal])
+        const date = formatYYYYMMDD(params)
+        const kategori = 'Bus'
+        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -164,10 +168,11 @@ async function disableBus(params) {
     }
 }
 
-async function disableLV(params) {
+async function getStatusHLV(params) {
     try{
-        let {opt, tanggal} = params
-        let result = await db.query(QUERY_STRING.inActiveLV, [opt, tanggal])
+        const date = formatYYYYMMDD(params)
+        const kategori = 'Triton'
+        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -190,10 +195,11 @@ async function disableLV(params) {
     }
 }
 
-async function disableHLV(params) {
+async function getStatusLV(params) {
     try{
-        let {opt, tanggal} = params
-        let result = await db.query(QUERY_STRING.inActiveHLV, [opt, tanggal])
+        const date = formatYYYYMMDD(params)
+        const kategori = 'Colt'
+        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -215,13 +221,39 @@ async function disableHLV(params) {
           };
     }
 }
+
+async function editModel(bodyParams) {
+    try{
+        let result = await updateModel(bodyParams)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Succesfully Update data!',
+                data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
 
 module.exports = {
     getAllData,
     bulkInsertQuotaDaily,
     updateData,
     getActiveData,
-    disableBus,
-    disableLV,
-    disableHLV
+    editModel,
+    getStatuBus,
+    getStatusHLV,
+    getStatusLV
 }

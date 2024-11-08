@@ -3,7 +3,6 @@ const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
 const getDataLastLkf = async (params) => {
-    console.log()
     try {
         let data = await db.query(QUERY_STRING.getLastLKF,[params])
         return data.rows

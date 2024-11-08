@@ -8,7 +8,7 @@ exports.up = function(knex) {
         table.date('date').notNullable();
         table.string('jde_operator', 8).notNullable();
         table.string('name_operator', 25).nullable();
-        table.string('station', 10).notNullable();
+        table.string('station', 20).notNullable();
         table.timestamp('login_time').defaultTo(knex.fn.now());
         table.timestamp('logout_time')
         table.boolean('is_delete').defaultTo(0);
