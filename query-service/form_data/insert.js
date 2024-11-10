@@ -54,6 +54,7 @@ const postFormData = async (data) => {
             const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
 
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit]);
+            console.log(data.no_unit)
             if (existingData.rows.length > 0) {
                 qty += existingData.rows[0].used;
             }
