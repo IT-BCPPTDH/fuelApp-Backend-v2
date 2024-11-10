@@ -24,7 +24,7 @@
     "pino": "^9.3.1",
     "pino-pretty": "^11.2.1",
     "pino-rotating-file-stream": "^0.0.2",
-    "redis": "^4.6.15",
+    "redis": "^4.7.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.43.0"
   }
 }
