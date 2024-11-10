@@ -47,7 +47,7 @@ const QUERY_STRING = {
 
     getLastDataMonth: `select * from form_data 
     where date_trx between $1 and $2
-    ORDER BY date_trx Desc LIMIT 1`, 
+    ORDER BY date_trx Desc`, 
 
     getExistingQuota : `select * from quota_usage where "unit_no" = $1 and "isDelete" = false`,
 
