@@ -2,6 +2,7 @@ const db = require('../../database/helper');
 const { base64ToImage } = require('../../helpers/base64toImage');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
+const { formatYYYYMMDD } = require('../../helpers/dateHelper');
 
 // const postFormData = async (data) => {
 //     try {
@@ -51,15 +52,23 @@ const postFormData = async (data) => {
         let result = await db.query(QUERY_STRING.postFormData, params);
 
         if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
-            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
+            const query = `UPDATE quota_usage SET used = $1 WHERE unit_no = $2 and date = $3`;
 
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit]);
+            console.log(existingData.rows[0].used)
             console.log(data.no_unit)
             if (existingData.rows.length > 0) {
                 qty += existingData.rows[0].used;
+                
             }
-            const value = [qty, no_unit, date_trx]
+            console.log(qty)
+            const tanggal = formatYYYYMMDD(date_trx)
+
+            const value = [qty, no_unit, tanggal]
             const res = await db.query(query, value);
+            console.log(value)
+            console.log(res)
+
         }
         
         return result.rowCount > 0;
