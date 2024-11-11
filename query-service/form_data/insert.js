@@ -48,19 +48,22 @@ const postFormData = async (data) => {
 
         const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by ];
         
-        let result = await db.query(QUERY_STRING.postFormData, params);
 
-        if(data.no_unit.includes('LV') || data.no_unit.includes('HLV')){
-            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit]);
+        if (data.no_unit.includes('LV') || data.no_unit.includes('HLV')) {
+            const updateQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
+        
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit, date_trx]);
             if (existingData.rows.length > 0) {
                 qty += existingData.rows[0].used;
+                if (qty > existingData.rows[0].quota) {
+                    return 'This unit has exceeded its quota limit!';
+                }
             }
-            const value = [qty, no_unit, date_trx]
-            const res = await db.query(query, value);
+            const updateValues = [qty, data.no_unit, date_trx];
+            await db.query(updateQuery, updateValues);
         }
-        
+
+        const result = await db.query(QUERY_STRING.postFormData, params);
         return result.rowCount > 0;
     } catch (error) {
         logger.error(error);
@@ -82,12 +85,14 @@ const insertToForm = async (dataJson) => {
         const values = Object.keys(dataJson).map(key => dataJson[key]);
         const result = await db.query(createOperatorQuery, values);
 
-        //jumlahkan dulu bila qty dari nomor yang sama
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
             
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit])
             if(existingData.rows.length > 0){
                 dataJson.qty += existingData.rows[0].used
+                if (qty > existingData.rows[0].quota) {
+                    return false;
+                }
             }
 
             const params = [dataJson.qty, dataJson.no_unit, dataJson.date_trx]
@@ -122,11 +127,10 @@ const deleteForm = async (params) => {
 }
 
 const editForm = async (updateFields) => {
-    console.log(updateFields)
     try {
 
         const setClauses = Object.keys(updateFields)
-            .filter(field => field !== 'from_data_id') // Exclude from_data_id for the update
+            .filter(field => field !== 'from_data_id') 
             .map((field, index) => `${field} = $${index + 1}`)
             .join(', ');
 
@@ -140,7 +144,7 @@ const editForm = async (updateFields) => {
         const query = `UPDATE form_data SET ${setClauses} WHERE from_data_id = $${values.length}`;
         const result = await db.query(query, values);
 
-        return result.rowCount > 0; // Return true if at least one row was updated
+        return result.rowCount > 0; 
     } catch (error) {
         logger.error(error);
         return false;
