@@ -26,8 +26,7 @@ const getHomeTab = async (params) => {
         // Assuming `params.lkf_id` is the parameter to be used in the query
         const result = await db.query(QUERY_STRING.getHomeTotals, [params]); // Correctly passing parameter
 
-        console.log("data", result.rows); // Log rows instead of whole result
-
+       
         if (result.rows && result.rows.length > 0) {
             return result.rows; // Return rows if found
         } else {
