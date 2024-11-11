@@ -20,6 +20,7 @@ const getPreviousMonth = async (params) => {
         let dateBefore = formatYYYYMMDDBefore(date, 30)
         console.log(dateBefore)
         let data = await db.query(QUERY_STRING.getLastDataMonth,[dateBefore, date])
+        console.log(data.rows)
         return data.rows
     } catch (error) {
         logger.error(error)
