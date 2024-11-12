@@ -33,7 +33,7 @@ async function handleActivatedHlv(res, req) {
 async function handleActivatedLv(res, req) {
     await handleResponseParams(res, req, getStatusLV, 1)
 }
-
+// 
 module.exports = {
     handleGetData,
     handleBulkData,
