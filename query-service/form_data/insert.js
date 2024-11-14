@@ -73,6 +73,7 @@ const postFormData = async (data) => {
 };
 
 const insertToForm = async (dataJson) => {
+ 
     try {
         const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
@@ -88,9 +89,11 @@ const insertToForm = async (dataJson) => {
         //jumlahkan dulu bila qty dari nomor yang sama
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
             
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit])
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dataJson.date_trx])
             if(existingData.rows.length > 0){
+
                 dataJson.qty += existingData.rows[0].used
+                console.log('disini')
             }
 
             const params = [dataJson.qty, dataJson.no_unit, dataJson.date_trx]
