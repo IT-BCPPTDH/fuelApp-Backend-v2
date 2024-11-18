@@ -5,13 +5,15 @@
 exports.up = function(knex) {
     return knex.schema.createTable('form_data', function(table) {
         table.increments('id').primary();
-        table.string('from_data_id', 20).notNullable();
+        table.string('from_data_id', 20).nullable();
         table.string('no_unit', 20).notNullable();
         table.string('model_unit', 50).nullable();
         table.string('owner', 50).nullable();
         table.timestamp('date_trx').nullable();
         table.float('hm_km', 20).nullable();
+        table.float('hm_last', 20).nullable();
         table.float('qty', 20).nullable();
+        table.float('qty_last', 20).nullable();
         table.float('flow_start', 20).nullable();
         table.float('flow_end', 20).nullable();
         table.string('jde_operator', 20).nullable();
@@ -26,6 +28,7 @@ exports.up = function(knex) {
         table.integer('uniq_number', 50).nullable();
         table.boolean('isStatus').defaultTo(0);
         table.boolean('isDelete').defaultTo(0);
+        table.timestamp('sync_time').defaultTo(knex.fn.now());
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
         table.string('created_by', 25).nullable();

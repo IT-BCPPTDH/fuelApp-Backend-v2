@@ -16,7 +16,7 @@ const getTotalDashboard = async (params) => {
         let dataLkfs = await db.query(QUERY_STRING.getTotalLkfs,[dateBefore, dateNow])
         let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
         const interShiftND = dataLkfs.rows[0].total_opening - prevClosing.rows[0].total_before 
-        const closedData = (dataLkfs.rows[0].total_opening + dataType.rows[0].total_receive_kpc) - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
+        const closedData = (dataLkfs.rows[0].total_opening + dataType.rows[0].total_receive_kpc + dataType.rows[0].total_receive) - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
         const variants = dataLkfs.rows[0].total_closing - closedData
         const data = { 
             prevSonding : prevClosing.rows[0].total_before ? prevClosing.rows[0].total_before.toLocaleString('en-US') : 0,
@@ -69,8 +69,8 @@ const getTableDashboard = async (params) => {
                     total_receive_kpc : matchingItem.total_receive_kpc ? matchingItem.total_receive_kpc.toLocaleString('en-US'): 0,
                     total_close_data : itemA.total_close_data == null ? closedData.toLocaleString('en-US') : itemA.total_close_data.toLocaleString('en-US'),
                     total_variant : itemA.total_variant == null? variant.toLocaleString('en-US') : itemA.total_variant.toLocaleString('en-US'), 
-                    intershiftDtoN : matchingItem3.difference ? matchingItem3.difference.toLocaleString('en-US') : 0,
-                    intershiftNtoD : matchingItem4.difference ? matchingItem4.difference.toLocaleString('en-US') : 0,
+                    intershiftDtoN: matchingItem3 && matchingItem3.difference != null ? matchingItem3.difference.toLocaleString('en-US') : '0',
+                    intershiftNtoD: matchingItem4 && matchingItem4.difference != null ? matchingItem4.difference.toLocaleString('en-US') : '0'
                 };
             }
             return itemA;
