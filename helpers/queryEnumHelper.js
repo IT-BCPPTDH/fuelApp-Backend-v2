@@ -72,7 +72,7 @@ const QUERY_STRING = {
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END),0) AS total_receive_kpc,
-    COALESCE(SUM(CASE WHEN fd.type = 'Receive' THEN fd.qty ELSE 0 END),0) AS total_receive
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END),0) AS total_receive
     from form_lkf fl
     left join form_data fd on fd.lkf_id  = fl.lkf_id 
     where fl."date" between $1 and $2`,
