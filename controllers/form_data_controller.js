@@ -2,7 +2,7 @@ const logger = require("../helpers/pinoLog");
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { postFormData,insertToForm, deleteForm, editForm } = require("../query-service/form_data/insert");
 const { updateFromData } = require("../query-service/form_data/update");
-const { getPrevious, getData, getPreviousMonth } = require("../query-service/form_data/getdata");
+const { getPrevious, getData, getPreviousMonth, getLastTransaction } = require("../query-service/form_data/getdata");
 
 async function operatorPostData(data) {
     try{
@@ -182,6 +182,31 @@ async function getPrevMonths(data) {
     }
 }
 
+async function getLastTrx() {
+    try{
+        let result = await getLastTransaction()
+        if(result.length > 0 ){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data',
+                data:result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data',
+                data:result
+            };
+        }
+    }catch(err){
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
 
 module.exports = {
     operatorPostData,
@@ -189,5 +214,6 @@ module.exports = {
     getFormDataPrev,
     bulkInsert,
     deleteData,
-    getPrevMonths
+    getPrevMonths,
+    getLastTrx
 }
