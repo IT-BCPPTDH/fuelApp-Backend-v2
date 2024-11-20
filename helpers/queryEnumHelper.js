@@ -39,7 +39,7 @@ const QUERY_STRING = {
     postFormData:`insert into form_data (from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, "end", fbr, lkf_id, signature, type, photo, created_by)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
     
-    DELETE_FORM_DATA: `UPDATE form_data SET "isDelete" = true WHERE from_data_id = $1`,
+    DELETE_FORM_DATA: `DELETE FROM form_data where from_data_id = $1`,
 
     getLastDataByStation: `select * from form_data 
     where no_unit = $1
@@ -61,7 +61,7 @@ const QUERY_STRING = {
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
     getOpeningDay: `select SUM(fl.opening_dip) as total_opening from form_lkf fl 
-    where fl."date" between $1 and $2 and shift = 'Day'`,
+    where fl."date" between $1 and $2`,
 
     getTotalLkfs: `select SUM(fl.opening_dip) as total_opening, SUM( fl.closing_dip) as total_closing,
     SUM(fl.close_data) As total_close_data,
@@ -198,9 +198,7 @@ const QUERY_STRING = {
     where fl.lkf_id = $1
     group by fl.opening_dip, fl.closing_dip,fl.flow_meter_start, fl.flow_meter_end,fl.opening_sonding`,
 
-    getTableFormData: `select * from form_lkf fl 
-    join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl.lkf_id = $1 and "isDelete" = false`,
+    getTableFormData: `select * from form_data fd where lkf_id = $1 and fd."isDelete" = false`,
 
     addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, station, quota_request, reason, document,request_by, request_name, approve_by, 
         approve_name, created_at, created_by) 
@@ -347,7 +345,7 @@ GROUP BY
     fl.variant,fl.close_data, fl.flow_meter_end,fl.opening_sonding, fl.hm_start, fl.hm_end, fl.shift, fl.station`,
 
     getClosingDip : `select sum(fl.closing_dip) as total_before from form_lkf fl 
-    where fl."date" between $1 and $2 and fl.shift = 'Night'`,
+    where fl."date" between $1 and $2`,
 
     getLkfSum : `select fl.station, SUM(fl.opening_dip) as total_opening, sum(fl.closing_dip) as total_closing, 
     SUM(fl.close_data) as close_data, sum(fl.variant) as variant from form_lkf fl 

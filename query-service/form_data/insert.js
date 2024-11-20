@@ -73,7 +73,6 @@ const postFormData = async (data) => {
 };
 
 const insertToForm = async (dataJson) => {
- 
     try {
         const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
@@ -129,24 +128,26 @@ const deleteForm = async (params) => {
 
 const editForm = async (updateFields) => {
     try {
-
         const setClauses = Object.keys(updateFields)
-            .filter(field => field !== 'from_data_id') 
-            .map((field, index) => `${field} = $${index + 1}`)
+            .filter(field => field !== 'id')
+            .map((field, index) => {
+                const escapedField = field === 'end' ? `"${field}"` : field;
+                return `${escapedField} = $${index + 1}`;
+            })
             .join(', ');
-
+        
         const values = Object.keys(updateFields)
-            .filter(field => field !== 'from_data_id')
+            .filter(field => field !== 'id')
             .map(field => updateFields[field]);
+        
+        values.push(updateFields.id);
 
-        // Add from_data_id at the end for the WHERE clause
-        values.push(updateFields.from_data_id);
-
-        const query = `UPDATE form_data SET ${setClauses} WHERE from_data_id = $${values.length}`;
+        const query = `UPDATE form_data SET ${setClauses} WHERE id = $${values.length}`;
         const result = await db.query(query, values);
 
         return result.rowCount > 0; 
     } catch (error) {
+        console.log(error)
         logger.error(error);
         return false;
     }

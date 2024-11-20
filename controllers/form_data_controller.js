@@ -32,11 +32,19 @@ async function adminUpdateData(data) {
     try{
         
         let result = await editForm(data)
-        return {
-            status: HTTP_STATUS.CREATED,
-            message: 'Data Created',
-            // data: result
-        };
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data has been update!',
+                // data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.CREATED,
+                message: 'Data Created',
+                // data: result
+            };
+        }
     }catch(err){
         logger.error(err)
         return {
