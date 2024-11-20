@@ -234,7 +234,7 @@ function renderTemplate(index, sheet, data, headers, startRow) {
             sheet.getCell(`H${unitStartRow + index}`).value = unit.awal || 0;
             sheet.getCell(`I${unitStartRow + index}`).value = unit.akhir || 0;
             sheet.getCell(`J${unitStartRow + index}`).value = unit.shift == 'Day' ? 'D' : 'N';
-            sheet.getCell(`K${unitStartRow + index}`).value = unit.type === 'Transfer' ? 'Transfer' : unit.type === 'Receipt' ? 'Receipt' : '';
+            sheet.getCell(`K${unitStartRow + index}`).value = unit.type === 'Transfer' ? 'Transfer' : unit.type === 'Receipt' ? 'Receipt' : unit.type === 'Receipt KPC' ? 'Receipt KPC' : '';
 
             const jamAwal = unit.start || '00:00';
             const jamAkhir = unit.end || '00:00';
@@ -281,7 +281,7 @@ function renderTemplate(index, sheet, data, headers, startRow) {
                 };
                 sheet.getCell(`B${row}`).font = { color: { argb: '0a801a' } };
                 sheet.getCell(`K${row}`).font = { color: { argb: '0a801a' } };
-            } else if (unit.type === 'Receipt') {
+            } else if (unit.type === 'Receipt' || unit.type === 'Receipt KPC' ) {
                 sheet.getCell(`B${row}`).fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -471,7 +471,7 @@ const downloadReportLkf = async (data) => {
         let paramIndex = 3;
 
         // Use DISTINCT in SQL to filter duplicates at the database level
-        let query = `SELECT DISTINCT fl.lkf_id, 
+        let query = `SELECT fl.lkf_id, 
                             TO_CHAR((fl."date"::timestamp at TIME zone 'UTC' at TIME zone 'Asia/Bangkok'), 'YYYY-MM-DD') as date,
                             fl.shift, fl.site, fl.fuelman_id, fl.station, fl.opening_sonding, fl.closing_sonding, 
                             fl.opening_dip, fl.closing_dip, fl.flow_meter_start, fl.flow_meter_end, 
@@ -516,21 +516,23 @@ const downloadReportLkf = async (data) => {
         }
 
         // Debugging: Log fetched rows
-        console.log("Fetched Rows:", result.rows);
+        // console.log("Fetched Rows:", result.rows);
 
         // Filter out duplicates by a unique identifier, e.g., lkf_id
         const uniqueRows = Array.from(new Map(result.rows.map(item => [item.lkf_id, item])).values());
 
         if (data.option === "Excel") {
             fileName = `Excel-${dateBefore}-${dateNow}.xlsx`;
-            const datas = transformData(uniqueRows); 
+            const datas = transformData(result.rows); 
+            console.log(datas)
             const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
             await generateExcel(datas, headers, fileName);
 
             return {
                 status: HTTP_STATUS.OK,
-                link: fileName
+                link: fileName,
+                data: result.rows
             };
         } else if (data.option === "Elipse") {
             fileName = `Excel-template-LKF-${formatedDatesNames(dateBefore)}-${formatedDatesNames(dateNow)}.xlsx`;
@@ -599,6 +601,7 @@ const downloadReportLkf = async (data) => {
             };
         }
     } catch (error) {
+        console.log(error)
         logger.error(error);
         return {
             status: HTTP_STATUS.BAD_REQUEST,
@@ -609,40 +612,50 @@ const downloadReportLkf = async (data) => {
 
 const transformData = (data) => {
     const result = [];
-  
+
     data.forEach((item) => {
-      let existingEntry = result.find(entry => entry.lkf_id === item.lkf_id);
-  
-      if (!existingEntry) {
-        existingEntry = {
-          lkf_id: item.lkf_id,
-          station: item.station,
-          shift: item.shift,
-          flow_meter_start: item.flow_meter_start,
-          flow_meter_end: item.flow_meter_end,
-          date : `${formatedDatesNames(item.date)}`,
-          total_in: item.flow_meter_end - item.flow_meter_start, 
-          data_unit: []
-        };
-        result.push(existingEntry);
-      }
-  
-      existingEntry.data_unit.push({
-        no_unit : item.no_unit,
-        hmkm :item.hm_km,
-        driver: item.operator,
-        qty: item.qty,
-        start: formattedHHMM(item.start),
-        end : formattedHHMM(item.end),
-        awal: item.flow_meter_start,
-        akhir :item.flow_meter_end,
-        shift : item.shift,
-        type:  item.type 
+        let existingEntry = result.find(entry => entry.lkf_id === item.lkf_id);
+
+        if (!existingEntry) {
+            existingEntry = {
+                lkf_id: item.lkf_id,
+                station: item.station,
+                shift: item.shift,
+                flow_meter_start: item.flow_meter_start,
+                flow_meter_end: item.flow_meter_end,
+                date: `${formatedDatesNames(item.date)}`,
+                total_in: item.flow_meter_end - item.flow_meter_start,
+                data_unit: []
+            };
+            result.push(existingEntry);
+        }
+
+        // Check if the no_unit already exists in data_unit array
+        const unitExists = existingEntry.data_unit.some(
+            unit => unit.no_unit === item.no_unit &&
+                    unit.start === formattedHHMM(item.start) &&
+                    unit.end === formattedHHMM(item.end) &&
+                    unit.type === item.type
+        );
+
+        if (!unitExists) {
+            existingEntry.data_unit.push({
+                no_unit: item.no_unit,
+                driver: item.operator,
+                qty: item.qty,
+                start: formattedHHMM(item.start),
+                end: formattedHHMM(item.end),
+                awal: item.flow_meter_start,
+                akhir: item.flow_meter_end,
+                shift: item.shift,
+                type: item.type
+            });
+        }
     });
-    });
-  
+
     return result;
 };
+
 
 const downloadHomeStation = async(data) => {
     try{
