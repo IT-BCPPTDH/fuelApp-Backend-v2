@@ -7,6 +7,8 @@ module.exports = (app) => {
     app.get('/api/operator/get-data/:unitNo',(res,req) => formDataHandler.handleOperatorByUnit(res,req))
     app.post('/api/operator/bulk-insert',(res,req) => formDataHandler.handleOperatorBulkData(res,req))
     app.get('/api/operator/get-data-prev/:tanggal',(res,req) => formDataHandler.handleUnitPrevMonth(res,req))
+    app.get('/api/operator/get-last-trx',(res,req) => formDataHandler.handleLastTrx(res,req))
+
 
     // admin
     app.put('/api/admin/update-data',(res,req) => formDataHandler.handleAdminUpdateData(res,req))
