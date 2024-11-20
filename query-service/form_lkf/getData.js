@@ -13,6 +13,18 @@ const getDataLastLkf = async (params) => {
     }
 };
 
+const getDataLastLkfAll = async (params) => {
+    try {
+        let data = await db.query(QUERY_STRING.getLastLKFAll)
+        return data.rows
+    } catch (error) {
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+};
+
 module.exports = {
-    getDataLastLkf
+    getDataLastLkf,
+    getDataLastLkfAll,
 }
