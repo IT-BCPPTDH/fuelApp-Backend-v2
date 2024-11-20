@@ -14,8 +14,8 @@ const getTotalStation = async (params) => {
         const stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
         const closedData = totalStation.rows[0].total_open + totalStation.rows[0].total_receive_kpc + totalStation.rows[0].total_receive - totalStation.rows[0].total_issued - totalStation.rows[0].total_transfer
         const variance = totalStation.rows[0].total_close - closedData
-        const closedDataDay = stationShiftDay.rows[0].total_open + stationShiftDay.rows[0].total_receive_kpc + stationShiftDay.rows[0].total_receive - stationShiftDay.rows[0].total_issued - stationShiftDay.rows[0].total_transfer
-        const varianceDay = stationShiftDay.rows[0].total_close - closedDataDay
+        const closedDataDay = stationShiftDay?.rows[0]?.total_open + stationShiftDay?.rows[0]?.total_receive_kpc + stationShiftDay?.rows[0]?.total_receive - stationShiftDay?.rows[0]?.total_issued - stationShiftDay?.rows[0]?.total_transfer
+        const varianceDay = stationShiftDay?.rows[0]?.total_close - closedDataDay
         const closedDataNight = stationShiftNight?.rows[0]?.total_open + stationShiftNight?.rows[0]?.total_receive_kpc + stationShiftNight?.rows[0]?.total_receive - stationShiftNight?.rows[0]?.total_issued - stationShiftNight?.rows[0]?.total_transfer
         const varianceNight = stationShiftNight?.rows[0]?.total_close - closedDataNight
         data = { 
