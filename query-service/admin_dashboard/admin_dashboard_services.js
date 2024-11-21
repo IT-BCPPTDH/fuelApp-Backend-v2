@@ -16,7 +16,7 @@ const getTotalDashboard = async (params) => {
         let dataLkfs = await db.query(QUERY_STRING.getTotalLkfs,[dateBefore, dateNow])
         let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
         const interShiftND = dataLkfs.rows[0].total_opening - prevClosing.rows[0].total_before 
-        const closedData = (dataLkfs.rows[0].total_opening + dataType.rows[0].total_receive_kpc + dataType.rows[0].total_receive) - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
+        const closedData = (dataLkfs.rows[0].total_opening + dataType.rows[0].total_receive_kpc + dataType.rows[0].total_receive) - (dataType.rows[0].total_issued + dataType.rows[0].total_transfer)
         const variants = dataLkfs.rows[0].total_closing - closedData
         const data = { 
             prevSonding : prevClosing.rows[0].total_before ? prevClosing.rows[0].total_before.toLocaleString('en-US') : 0,
@@ -56,7 +56,7 @@ const getTableDashboard = async (params) => {
             const matchingItem = getFormStations.rows.find(itemB => itemB.station === itemA.station);
             const matchingItem3 = interDtoN.find(item3 => item3.station === itemA.station);
             const matchingItem4 = calcNtoD.find(item4 => item4.station === itemA.station);
-            const closedData = itemA.total_opening + matchingItem.total_receive_kpc + matchingItem.total_receive - matchingItem.total_issued - matchingItem.total_transfer
+            const closedData = itemA.total_opening + matchingItem.total_receive_kpc + matchingItem.total_receive - (matchingItem.total_issued + matchingItem.total_transfer)
             const variant = itemA.total_closing - closedData
             if (matchingItem) {
                 return {

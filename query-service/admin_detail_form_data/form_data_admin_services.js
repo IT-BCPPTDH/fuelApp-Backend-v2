@@ -1,10 +1,9 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, prevFormatYYYYMMDD,formatDateToDDMMYYYY, formattedHHMMservice } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, formatDateTimeToDDMMYYYY_HHMMSS } = require('../../helpers/dateHelper');
 const { fetchUser } = require('../../helpers/httpHelper');
 const logger = require('../../helpers/pinoLog');
 const { getEquipment } = require('../../helpers/proto/master-data');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
-
 
 const getTotalData = async (params) => {
     try {
@@ -44,7 +43,13 @@ const getTotalData = async (params) => {
 const getTableData = async (params) => {
     try{
         const data = await db.query(QUERY_STRING.getTableFormData, [params])
-        return data.rows
+        const formattedRows = data.rows.map((row) => ({
+            ...row,
+            entry_time: formatDateTimeToDDMMYYYY_HHMMSS(row.created_at), 
+            sync_time: formatDateTimeToDDMMYYYY_HHMMSS(row.sync_time), 
+        }));
+        
+        return formattedRows
     }catch(err){
         logger.error(err)
         console.error('Error during update:', err);
@@ -74,7 +79,7 @@ const insertBulkData = async(header, dataArray, userData) => {
             };
             const typeTrx = typeMap[row[9]] || "Unknown";
 
-            const fetchLastData = await db.query(QUERY_STRING.getLastDataByStation, [unit[0].unit_no])
+            const fetchLastData = await db.query(QUERY_STRING.getLastDataByStation, [unit[0].unit_no, dateNow])
             const unitLast = fetchLastData.rows
 
             const jmlFbr = (parseFloat(row[1]) - unitLast[0].hm_km) / Number(row[2])
