@@ -42,10 +42,11 @@ const getDataLogin = async (params) => {
 const logoutUser = async (params) => {
     try {
         const dt = new Date()
+        const dateNow = formatYYYYMMDD(dt)
         let user  = await signOut({user_id: params.userId, session_token: params.session_token})
         if(user.status == 200){
             const value = new Date()
-            const updateLog = await db.query(QUERY_STRING.update_log, [value, params.logId])
+            const updateLog = await db.query(QUERY_STRING.update_log, [value, params.logId, dateNow])
             return ({success: true})
         }
         return { success: false, message: "No user credentials found for the provided Employee ID." };
