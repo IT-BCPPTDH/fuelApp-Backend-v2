@@ -2,16 +2,20 @@ const logger = require("../helpers/pinoLog");
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { postFormData,insertToForm, deleteForm, editForm } = require("../query-service/form_data/insert");
 const { updateFromData } = require("../query-service/form_data/update");
-const { getPrevious, getData, getPreviousMonth, getLastTransaction } = require("../query-service/form_data/getdata");
+const { getPrevious, getData, getPreviousMonth,getLastTransaction } = require("../query-service/form_data/getdata");
+const db = require('../database/helper');
+const { QUERY_STRING } = require("../helpers/queryEnumHelper");
 
 async function operatorPostData(data) {
     try{
         let result = await postFormData(data)
+        const newData = await db.query(QUERY_STRING.getTableFormData, [data.lkf_id])
         if(result){
             return {
                 status: HTTP_STATUS.CREATED,
                 message: 'Data Created',
-                data: result
+                data: result,
+                res: newData.rows
             };
         }else{
             return {
@@ -32,17 +36,17 @@ async function adminUpdateData(data) {
     try{
         
         let result = await editForm(data)
+        const newData = await db.query(QUERY_STRING.getTableFormData, [data.lkf_id])
         if(result){
             return {
                 status: HTTP_STATUS.OK,
                 message: 'Data has been update!',
-                // data: result
+                data: newData
             };
         }else{
             return {
-                status: HTTP_STATUS.CREATED,
-                message: 'Data Created',
-                // data: result
+                status: HTTP_STATUS.METHOD_NOT_ALLOWED,
+                message: 'Data not update',
             };
         }
     }catch(err){
@@ -54,9 +58,9 @@ async function adminUpdateData(data) {
     }
 }
 
-async function getFormDataPrev(data) {
+async function getFormDataPrev(unit_no, tanggal) {
     try{
-        let result = await getPrevious(data)
+        let result = await getPrevious(unit_no, tanggal)
         if(result.length > 0 ){
             return {
                 status: HTTP_STATUS.OK,

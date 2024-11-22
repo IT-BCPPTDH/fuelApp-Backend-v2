@@ -4,7 +4,7 @@ const { checkToken } = require('../helpers/redisTransaction');
 module.exports = (app) => {
     // operator
     app.post('/api/operator/post-data',(res,req) => formDataHandler.handleOperatorPostData(res,req))
-    app.get('/api/operator/get-data/:unitNo',(res,req) => formDataHandler.handleOperatorByUnit(res,req))
+    app.get('/api/operator/get-data/:unitNo/:tanggal',(res,req) => formDataHandler.handleOperatorByUnit(res,req))
     app.post('/api/operator/bulk-insert',(res,req) => formDataHandler.handleOperatorBulkData(res,req))
     app.get('/api/operator/get-data-prev/:tanggal',(res,req) => formDataHandler.handleUnitPrevMonth(res,req))
     app.get('/api/operator/get-last-trx',(res,req) => formDataHandler.handleLastTrx(res,req))

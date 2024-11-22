@@ -3,9 +3,10 @@ const { formatYYYYMMDD,formatYYYYMMDDBefore } = require('../../helpers/dateHelpe
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
-const getPrevious = async (params) => {
+const getPrevious = async (unit_no, tanggal) => {
     try {
-        let data = await db.query(QUERY_STRING.getLastDataByStation,[params])
+        const dates = formatYYYYMMDD(tanggal)
+        let data = await db.query(QUERY_STRING.getLastDataByStation,[unit_no, dates])
         return data.rows
     } catch (error) {
         logger.error(error)
