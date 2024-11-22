@@ -11,7 +11,11 @@ const QUERY_STRING = {
       )
     ORDER BY updated_at DESC
     LIMIT 1;`,
-
+  
+   getLastLKFAll:`SELECT DISTINCT ON (station) station, hm_end, closing_dip, closing_sonding,close_data,flow_meter_end
+        FROM form_lkf
+        ORDER BY station, created_at DESC;`,  
+  
     postFromLKF : `insert into form_lkf (lkf_id,date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding,flow_meter_start,time_opening, created_by,status)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'Open') returning *`,
     closeFromLKF:`update form_lkf set hm_end = $1, closing_dip = $2, closing_sonding = $3, flow_meter_end = $4, updated_by = $5, updated_at = $6, note = $7, signature = $8, close_data = $9, variant = $10, status = 'Close'
@@ -30,7 +34,14 @@ const QUERY_STRING = {
     where date_trx between $1 and $2
     ORDER BY date_trx Desc`, 
 
+    getLasTrx:`
+        SELECT DISTINCT ON (fd.no_unit) no_unit, hm_km,qty
+        FROM form_data fd
+        ORDER BY fd.no_unit, fd.created_at DESC;
+    `,
+
     getExistingQuota : `select * from quota_usage where "unit_no" = $1 and "date" = $2 and "isDelete" = false and is_active = true`,
+
 
     getPreviousData: `select * from form_lkf fl where fl.station = $1
     ORDER BY shift DESC LIMIT 1 OFFSET 1`, 
@@ -229,7 +240,8 @@ const QUERY_STRING = {
     where fl."date"  between $1 and $2 and fl.station = $3`,
 
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
-    getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
+    // getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
+    getActiveQuota : `Select unit_no ,quota ,used ,additional from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
     getMaxQuota: `select max(quota) as limited_quota,max(is_active) as activated from quota_usage qu where "date" = $1 and kategori = $2`,
     getQuota : `Select * from quota_usage where "unit_no" = $1 and "is_active" = 'true' ORDER BY "date" desc LIMIT 1`,
 

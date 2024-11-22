@@ -119,6 +119,7 @@ async function updateData(Json) {
 async function getActiveData(params) {
     try{
         let result = await db.query(QUERY_STRING.getActiveQuota, [params])
+        // console.log(result.rows)
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,

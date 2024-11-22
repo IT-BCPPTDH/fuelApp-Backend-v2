@@ -19,9 +19,22 @@ const getPreviousMonth = async (params) => {
     try {
         let date = formatYYYYMMDD(params)
         let dateBefore = formatYYYYMMDDBefore(date, 30)
-        console.log(dateBefore)
+        // console.log(dateBefore)
         let data = await db.query(QUERY_STRING.getLastDataMonth,[dateBefore, date])
-        console.log(data.rows)
+        // console.log(data.rows)
+        return data.rows
+    } catch (error) {
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+};
+
+const getLastTransaction = async () => {
+    try {
+
+        let data = await db.query(QUERY_STRING.getLasTrx)
+
         return data.rows
     } catch (error) {
         logger.error(error)
@@ -44,5 +57,6 @@ const getData = async (params) => {
 module.exports = {
     getPrevious,
     getPreviousMonth,
-    getData
+    getData,
+    getLastTransaction
 }
