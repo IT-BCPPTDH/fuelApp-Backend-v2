@@ -6,7 +6,7 @@ async function handleOperatorPostData(res, req) {
 }
 
 async function handleOperatorByUnit(res, req) {
-    await handleResponseParams(res, req, getFormDataPrev, 1 )
+    await handleResponseParams(res, req, getFormDataPrev, 2 )
 }
 
 async function handleAdminUpdateData(res, req) {

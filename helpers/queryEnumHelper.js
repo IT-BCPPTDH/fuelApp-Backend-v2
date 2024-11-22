@@ -1,23 +1,6 @@
 
 const QUERY_STRING = {
-    // lkf
-
-//     getLastLKF : `SELECT * 
-// FROM form_lkf fl 
-// WHERE station = $1 
-//   AND "date" = (
-//       SELECT MAX("date") 
-//       FROM form_lkf fl2 
-//       WHERE station = $1 
-//         AND updated_at < NOW()
-//   )
-// ORDER BY 
-//   CASE 
-//     WHEN shift = 'Night' THEN 1 
-//     WHEN shift = 'Day' THEN 2 
-//   END 
-// LIMIT 1;`,
-
+    
     getLastLKF:`SELECT * 
     FROM form_lkf fl 
     WHERE station = $1 
@@ -28,25 +11,24 @@ const QUERY_STRING = {
       )
     ORDER BY updated_at DESC
     LIMIT 1;`,
-
-    getLastLKFAll:`SELECT DISTINCT ON (station) station, hm_end, closing_dip, closing_sonding,close_data,flow_meter_end
+  
+   getLastLKFAll:`SELECT DISTINCT ON (station) station, hm_end, closing_dip, closing_sonding,close_data,flow_meter_end
         FROM form_lkf
-        ORDER BY station, created_at DESC;`,
-
+        ORDER BY station, created_at DESC;`,  
+  
     postFromLKF : `insert into form_lkf (lkf_id,date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding,flow_meter_start,time_opening, created_by,status)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'Open') returning *`,
     closeFromLKF:`update form_lkf set hm_end = $1, closing_dip = $2, closing_sonding = $3, flow_meter_end = $4, updated_by = $5, updated_at = $6, note = $7, signature = $8, close_data = $9, variant = $10, status = 'Close'
     where lkf_id = $11`,
 
-    // form_data
     postFormData:`insert into form_data (from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, "end", fbr, lkf_id, signature, type, photo, created_by)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
     
     DELETE_FORM_DATA: `DELETE FROM form_data where from_data_id = $1`,
 
     getLastDataByStation: `select * from form_data 
-    where no_unit = $1
-    ORDER BY date_trx Desc LIMIT 1;`, 
+    where no_unit = $1 AND date_trx < $2 and "type" = 'Issued'
+    ORDER BY created_at Desc LIMIT 1;`, 
 
     getLastDataMonth: `select * from form_data 
     where date_trx between $1 and $2
@@ -58,7 +40,8 @@ const QUERY_STRING = {
         ORDER BY fd.no_unit, fd.created_at DESC;
     `,
 
-    getExistingQuota : `select * from quota_usage where "unit_no" = $1 and "date" = $2 and "isDelete" = false`,
+    getExistingQuota : `select * from quota_usage where "unit_no" = $1 and "date" = $2 and "isDelete" = false and is_active = true`,
+
 
     getPreviousData: `select * from form_lkf fl where fl.station = $1
     ORDER BY shift DESC LIMIT 1 OFFSET 1`, 
@@ -66,7 +49,7 @@ const QUERY_STRING = {
     getDataByDate: `Select * from form_data where  DATE(date_trx) = ANY($1) AND "isDelete" = false`,
 
     insert_log : `INSERT INTO fuelman_log(date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4)`,
-    update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2`,
+    update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2 and "date" = $3`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
     getOpeningDay: `select SUM(fl.opening_dip) as total_opening from form_lkf fl 
@@ -86,15 +69,6 @@ const QUERY_STRING = {
     left join form_data fd on fd.lkf_id  = fl.lkf_id 
     where fl."date" between $1 and $2`,
 
-    // getPrevious : `SELECT sum(fl.opening_sonding) AS total_opening, 
-    // SUM(fl.closing_sonding) AS total_closing,
-    // SUM(fl.close_data) As total_close_data,
-    // SUM(fl.variant) As total_variant
-    // FROM form_lkf fl 
-    // WHERE fl."date" = $1
-    // AND shift = $2;
-    // `,
-
     getPrevious : `SELECT sum(DISTINCT closing_dip) as total_closing, 
     SUM(fl.close_data) As total_close_data, SUM(fl.variant) As total_variant
     FROM form_lkf fl 
@@ -104,27 +78,6 @@ const QUERY_STRING = {
     getAllLkf : `SELECT SUM(distinct fl.opening_dip) AS total_opening FROM form_lkf fl WHERE fl."date" = $1 and fl.shift = 'Day'`,
     getAllLkfs : `SELECT fl.opening_dip AS total_opening FROM form_lkf fl WHERE fl."date" = $1 and fl.shift = 'Day'`,
 
-    // getTotals : `SELECT 
-    // fl.date, 
-    // fl.station, 
-    // SUM(DISTINCT fl.opening_dip) AS total_opening, 
-    // fl.variant AS total_variant,  
-    // SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
-    // SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
-    // SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive,
-    // SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc
-    //     FROM 
-    //         form_lkf fl
-    //     LEFT JOIN 
-    //         form_data fd ON fd.lkf_id = fl.lkf_id  
-    //     WHERE 
-    //         fl.lkf_id = $1  
-    //     GROUP BY 
-    //         fl.date, fl.station, fl.variant;`,
-
-
-
-    // Function Untuk Table Pada Admin Dashboard Utama
     getTotals : `SELECT 
         fl.date, 
         fl.station, 
@@ -226,30 +179,26 @@ const QUERY_STRING = {
 
 
     getHomeTotals : `SELECT 
-    fl.date, 
-    fl.station, 
-    SUM(DISTINCT fl.opening_dip) AS total_opening, 
-    fl.variant AS total_variant,  
-    SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
-    SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
-    SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive,
-    SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc,
-    fl.flow_meter_start,  
-    fl.flow_meter_end,  
-    fl.shift     
-FROM 
-    form_lkf fl
-LEFT JOIN 
-    form_data fd ON fd.lkf_id = fl.lkf_id  
-WHERE 
-    fl.lkf_id = $1  
-GROUP BY 
-    fl.date, fl.station, fl.variant, fl.flow_meter_start, fl.flow_meter_end, fl.shift;  -- Tambahkan ke GROUP BY
-`,
+        fl.date, 
+        fl.station, 
+        SUM(DISTINCT fl.opening_dip) AS total_opening, 
+        fl.variant AS total_variant,  
+        SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END) AS total_issued,
+        SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END) AS total_transfer,
+        SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END) AS total_receive,
+        SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END) AS total_receive_kpc,
+        fl.flow_meter_start,  
+        fl.flow_meter_end,  
+        fl.shift     
+        FROM 
+            form_lkf fl
+        LEFT JOIN 
+            form_data fd ON fd.lkf_id = fl.lkf_id  
+        WHERE 
+            fl.lkf_id = $1  
+        GROUP BY 
+            fl.date, fl.station, fl.variant, fl.flow_meter_start, fl.flow_meter_end, fl.shift`,
 
-    // getHomeTable: `select fd.no_unit, fd.model_unit, fd.fbr, fd."type", fd.qty,
-    // fd.flow_start, fd.flow_end, fd.jde_operator, fd.name_operator from form_data fd 
-    // where fd.lkf_id = $1`,
 
     getHomeTable: `select * from form_data fd 
     where fd.lkf_id = $1`,
@@ -395,6 +344,12 @@ GROUP BY
 
     openingDipDay : `select fl.station, fl.opening_dip as opening_dip_day from form_lkf fl 
         where fl."date" between $1 and $2 and fl.shift = 'Day' GROUP By 1,2`,
+
+
+    getLkfById : `Select * from form_lkf where lkf_id = $1`,
+    deleteLkf : `DELETE from form_lkf where lkf_id = $1`,
+    deleteForm : `DELETE from form_data where lkf_id = $1`,
+    deleteFuelmanLog: `DELETE from fuelman_log where station = $1 and date = $2`
 }
 
 module.exports = {

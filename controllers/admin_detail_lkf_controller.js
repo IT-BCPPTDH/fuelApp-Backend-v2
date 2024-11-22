@@ -112,7 +112,6 @@ async function uploadData(headerArray, jsonArray, data){
     try{
         const users = JSON.parse(data)
         const result = await insertBulkData(headerArray, jsonArray, users)
-        console.log(result)
         return {
           status: HTTP_STATUS.OK,
           message: "Succesfully insert data!",

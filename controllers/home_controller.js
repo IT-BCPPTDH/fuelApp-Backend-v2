@@ -51,9 +51,6 @@ async function getSummaryTab(data) {
     }
 }
 
-
-
-
 async function getTable(data) {
     try{
         let result = await getTables(data)
