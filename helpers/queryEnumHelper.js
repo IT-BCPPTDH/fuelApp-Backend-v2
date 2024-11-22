@@ -240,8 +240,8 @@ const QUERY_STRING = {
     where fl."date"  between $1 and $2 and fl.station = $3`,
 
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
-    // getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
-    getActiveQuota : `Select unit_no ,quota ,used ,additional from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
+    getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
+    // getActiveQuota : `Select unit_no ,quota ,used ,additional from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
     getMaxQuota: `select max(quota) as limited_quota,max(is_active) as activated from quota_usage qu where "date" = $1 and kategori = $2`,
     getQuota : `Select * from quota_usage where "unit_no" = $1 and "is_active" = 'true' ORDER BY "date" desc LIMIT 1`,
 
