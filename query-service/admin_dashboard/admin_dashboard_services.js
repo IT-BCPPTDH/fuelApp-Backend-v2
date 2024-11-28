@@ -21,6 +21,7 @@ const getTotalDashboard = async (params) => {
         const data = { 
             prevSonding : prevClosing.rows[0].total_before ? prevClosing.rows[0].total_before.toLocaleString('en-US') : 0,
             openSonding : dataOpening.rows[0].total_opening ? dataOpening.rows[0].total_opening.toLocaleString('en-US') : 0,
+            recipt: dataType.rows[0].total_receive? dataType.rows[0].total_receive.toLocaleString('en-US') : 0,
             reciptKpc: dataType.rows[0].total_receive_kpc ? dataType.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
             issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
             tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
