@@ -46,7 +46,7 @@ async function bulkInsertQuotaDaily(bodyParams){
 
 /** This block code for update data based on date  */
 
-cron.schedule('0 6 * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
     // cron.schedule('*/30 * * * * *', async () => {
   console.log("Loading for insert data at midnight...");
 
@@ -57,7 +57,7 @@ cron.schedule('0 6 * * *', async () => {
     return {
         status:HTTP_STATUS.OK,
         message: "Successfully inserted data:", data
-    }; 
+    }; pr
   } catch (error) {
     logger.error(err)
     return {

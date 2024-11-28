@@ -347,9 +347,24 @@ const QUERY_STRING = {
 
 
     getLkfById : `Select * from form_lkf where lkf_id = $1`,
-    deleteLkf : `DELETE from form_lkf where lkf_id = $1`,
-    deleteForm : `DELETE from form_data where lkf_id = $1`,
-    deleteFuelmanLog: `DELETE from fuelman_log where station = $1 and date = $2`
+    deleteStation : `BEGIN;
+    -- Hapus dari tabel form_lkf
+    DELETE FROM form_lkf
+    WHERE lkf_id = $1;
+
+    -- Hapus dari tabel form_data
+    DELETE FROM form_data
+    WHERE lkf_id = $1;
+
+    -- Hapus dari tabel fuelman_log berdasarkan join dengan tabel form_lkf
+    DELETE FROM fuelman_log
+    USING form_lkf
+    WHERE fuelman_log.jde_operator = form_lkf.fuelman_id
+      AND fuelman_log."date" = form_lkf."date"
+      AND fuelman_log.station = form_lkf.station
+      AND form_lkf.lkf_id = $1;
+     COMMIT;
+     `
 }
 
 module.exports = {
