@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { base64ToImage } = require('../../helpers/base64toImage');
+const { base64ToImageFlow, base64ToImageSign } = require('../../helpers/base64toImage');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 const { formatYYYYMMDD } = require('../../helpers/dateHelper');
@@ -47,8 +47,8 @@ const postFormData = async (data) => {
         
         let { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data;
 
-        let sign = await base64ToImage(data.signature)
-        let pic = await base64ToImage(data.photo)
+        let sign = await base64ToImageSign(signature)
+        let pic = await base64ToImageFlow(photo)
 
         const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, sign, type, pic, created_by ];
 
