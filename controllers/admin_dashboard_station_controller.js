@@ -56,11 +56,10 @@ async function stationTable(data){
 async function editStation(data){
     try{
         let result = await editData(data)
-        if(result && result.legth > 0){
+        if(result){
             return {
                 status: HTTP_STATUS.OK,
-                message: 'Successfuly get data.',
-                data: result
+                message: 'Successfuly get data.'
             };
         }else{
             return {
