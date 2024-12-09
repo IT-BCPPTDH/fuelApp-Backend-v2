@@ -44,6 +44,16 @@ app.get('/', (res, req) => {
 
 app.get('/online', (res, req) => {
     res.cork(() => {
+        res.writeHeader('Access-Control-Allow-Origin', '*'); // Allow all origins (or specify the exact origin)
+        res.writeHeader('Access-Control-Allow-Methods', 'GET, OPTIONS'); // Allow methods
+        res.writeHeader('Access-Control-Allow-Headers', 'Content-Type'); // Allow headers
+
+        // Respond to OPTIONS preflight request (for browsers)
+        if (req.getMethod() === 'OPTIONS') {
+            res.end(); // End preflight response
+            return;
+        }
+
         res.writeHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ online: true }));
     });
