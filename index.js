@@ -42,6 +42,13 @@ app.get('/', (res, req) => {
     });
 })
 
+app.get('/online', (res, req) => {
+    res.cork(() => {
+        res.writeHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ online: true }));
+    });
+});
+
 formLkfRoutes(app)
 formDataRoutes(app)
 loginRoutes(app)
