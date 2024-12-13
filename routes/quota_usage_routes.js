@@ -11,4 +11,5 @@ module.exports = (app) => {
     app.get('/api/quota-usage/get-status-hlv/:tanggal',(req,res) => quotaHandler.handleActivatedHlv(req,res));
     app.put('/api/quota-usage/update-data',(req,res) => quotaHandler.handleUpdateActive(req,res));
     app.put('/api/quota-usage/edit-model',(req,res) => quotaHandler.handleEditModel(req,res));
+    app.put('/api/quota-usage/update-from-tab',(req,res) => quotaHandler.handleUPdateFromTab(req,res));
 }

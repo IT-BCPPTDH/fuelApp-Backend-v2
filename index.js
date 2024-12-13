@@ -3,6 +3,8 @@
 const serverRoutes = require('uWebSockets.js')
 const app = serverRoutes.App();
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
 const port = process.env.PORT || 9111;
 
@@ -56,6 +58,29 @@ app.get('/online', (res, req) => {
 
         res.writeHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ online: true }));
+    });
+});
+
+app.get('/api/img/flowmeter/:name', async (res, req) => {
+    res.cork(() => {
+    const params = req.getParameter(0)
+    const imagePath = path.join(__dirname, '../../assets/flowmeter/',params); 
+
+    fs.readFile(imagePath, (err, data) => {
+        if (err) {
+            res.writeStatus('404 Not Found');
+            res.end('Image not found');
+            return;
+        }
+
+        res.writeHeader('Access-Control-Allow-Origin', '*')
+        res.writeHeader('Content-Type', 'application/image');
+        res.end(data);
+    });
+
+})
+    res.onAborted(() => {
+        res.aborted = true;
     });
 });
 

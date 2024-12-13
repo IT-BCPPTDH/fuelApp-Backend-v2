@@ -1,7 +1,7 @@
 const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 // const bulkData = require('../data-json/operator.json')
-const { insertToOperator, getTotal, updateActive, updateModel} = require('../query-service/quota_usage/quota_usage_service')
+const { insertToOperator, getTotal, updateActive, updateModel, updateTab} = require('../query-service/quota_usage/quota_usage_service')
 const cron = require('node-cron');
 const logger = require("../helpers/pinoLog");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
@@ -248,6 +248,30 @@ async function editModel(bodyParams) {
 }
 
 
+async function updateFromTab(bodyParams) {
+    try{
+        let result = await updateTab(bodyParams)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Succesfully Update data!',
+                data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
 module.exports = {
     getAllData,
     bulkInsertQuotaDaily,
@@ -256,5 +280,6 @@ module.exports = {
     editModel,
     getStatuBus,
     getStatusHLV,
-    getStatusLV
+    getStatusLV,
+    updateFromTab
 }
