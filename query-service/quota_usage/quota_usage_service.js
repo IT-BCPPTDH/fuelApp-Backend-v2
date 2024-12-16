@@ -132,9 +132,23 @@ const updateModel = async(updateFields) => {
     }
 }
 
+const updateTab = async (params) => {
+    const {used,id} = params
+    const query = `
+    UPDATE quota_usage 
+    SET "used" = "used" + $1 
+    WHERE "id" = $2
+  `;
+    
+    const value = [used,id]
+    const res = await db.query(query, value);
+    return true
+}
+
 module.exports = {
     insertToOperator,
     getTotal,
     updateActive,
-    updateModel
+    updateModel,
+    updateTab
 }
