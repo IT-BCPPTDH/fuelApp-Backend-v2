@@ -146,8 +146,17 @@ const QUERY_STRING = {
     FROM form_lkf fl
     WHERE fl.station = $1 AND fl."date" between $2 and $3`,
 
+    getShiftStationTK: `SELECT 
+        fl.lkf_id, fl."date", fl.shift, fl.station, fl.fuelman_id, fl."status", fl.time_opening
+    FROM form_lkf fl
+    WHERE fl.station LIKE $1 AND fl."date" between $2 and $3`,
+
+
     getLogStation: `select * from fuelman_log fl 
     where station = $1 AND "date" between $2 and $3`,
+
+    getLogStationTK: `select * from fuelman_log fl 
+    where fl.station LIKE $1 AND fl."date" between $2 and $3`,
 
     getAllFormData : `select SUM(distinct fl.opening_dip) as total_open, 
     SUM(distinct fl.closing_dip) as total_close, 
@@ -219,6 +228,17 @@ const QUERY_STRING = {
     where fl."date" between $1 and $2 and fl.shift = 'Day' and fl.station = $3
     group by fl.shift`,
 
+    getTKShiftDay: `select  SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
+    SUM(distinct fl.variant) AS variant,
+    SUM(distinct fl.close_data) AS close_data,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date" between $1 and $2 and fl.shift = 'Day' and fl.station LIKE $3`,
+
     getStationShiftNigth: `select  SUM(distinct fl.opening_dip) as total_open, fl.shift, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
@@ -231,6 +251,17 @@ const QUERY_STRING = {
     where fl."date"  between $1 and $2 and fl.shift = 'Night' and fl.station = $3
     group by fl.shift`,
 
+    getTKShiftNigth: `select  SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
+    SUM(distinct fl.variant) AS variant,
+    SUM(distinct fl.close_data) AS close_data,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date"  between $1 and $2 and fl.shift = 'Night' and fl.station LIKE $3`,
+
     getAllDataStation :`select SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
     SUM(distinct fl.close_data) AS close_data,
@@ -242,9 +273,19 @@ const QUERY_STRING = {
     left join form_data fd on fl.lkf_id = fd.lkf_id 
     where fl."date"  between $1 and $2 and fl.station = $3`,
 
+    getStationTK :`select SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
+    SUM(distinct fl.variant) AS variant,
+    SUM(distinct fl.close_data) AS close_data,
+    COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
+    COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
+    COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END), 0) AS total_receive_kpc
+    FROM form_lkf fl
+    left join form_data fd on fl.lkf_id = fd.lkf_id 
+    where fl."date"  between $1 and $2 and fl.station LIKE $3`,
+
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
     getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
-    // getActiveQuota : `Select unit_no ,quota ,used ,additional from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
     getMaxQuota: `select max(quota) as limited_quota,max(is_active) as activated from quota_usage qu where "date" = $1 and kategori = $2`,
     getQuota : `Select * from quota_usage where "unit_no" = $1 and "is_active" = 'true' ORDER BY "date" desc LIMIT 1`,
 

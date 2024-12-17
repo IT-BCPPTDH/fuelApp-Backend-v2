@@ -5,13 +5,18 @@ const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 
 const getTotalStation = async (params) => {
     try {
-        let data
+        let data, totalStation, stationShiftDay,stationShiftNight
         const dateNow = formatYYYYMMDD(params.tanggal)
         const dateBefore = formatDateOption(params.option, dateNow)
         const station = params.station
-        const totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateBefore, dateNow, station])
-        const stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateBefore,dateNow, station])
-        const stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
+        totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateBefore, dateNow, station])
+        stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateBefore,dateNow, station])
+        stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
+        if(station == 'TK1037' || station == 'TK1036'){
+            totalStation = await db.query(QUERY_STRING.getStationTK, [dateBefore, dateNow, `%${station}%`])
+            stationShiftDay = await db.query(QUERY_STRING.getTKShiftDay, [dateBefore,dateNow, `%${station}%`])
+            stationShiftNight = await db.query(QUERY_STRING.getTKShiftNigth, [dateBefore,dateNow, `%${station}%`])
+        }
         const closedData = totalStation.rows[0].total_open + totalStation.rows[0].total_receive_kpc + totalStation.rows[0].total_receive - totalStation.rows[0].total_issued - totalStation.rows[0].total_transfer
         const variance = totalStation.rows[0].total_close - closedData
         const closedDataDay = stationShiftDay?.rows[0]?.total_open + stationShiftDay?.rows[0]?.total_receive_kpc + stationShiftDay?.rows[0]?.total_receive - stationShiftDay?.rows[0]?.total_issued - stationShiftDay?.rows[0]?.total_transfer
@@ -51,11 +56,16 @@ const getTotalStation = async (params) => {
 
 const getTableStation = async (params) => {
     try{
+        let getDataStations, loginData
         const dateNow = formatYYYYMMDD(params.tanggal)
         const dateBefore = formatDateOption(params.option, dateNow)
         const station = params.station
-        const getDataStations =  await db.query(QUERY_STRING.getShiftStation, [station, dateBefore, dateNow])
-        const loginData = await db.query(QUERY_STRING.getLogStation, [station, dateBefore, dateNow])
+        getDataStations =  await db.query(QUERY_STRING.getShiftStation, [station, dateBefore, dateNow])
+        loginData = await db.query(QUERY_STRING.getLogStation, [station, dateBefore, dateNow])
+        if(station == 'TK1037' || station == 'TK1036'){
+            getDataStations =  await db.query(QUERY_STRING.getShiftStationTK, [`%${station}%`, dateBefore, dateNow])
+            loginData = await db.query(QUERY_STRING.getLogStationTK, [`%${station}%`, dateBefore, dateNow])
+        }
         const mergedData = getDataStations.rows.map(itemA => {
             const matchingItemB = loginData.rows.find(itemB => itemB.station === itemA.station
                 && itemB.jde_operator === itemA.fuelman_id);
