@@ -8,42 +8,37 @@ const { formatDateOption,formatYYYYMMDD,formatDateToDDMMYYYY,prevFormatYYYYMMDD 
 
 const insertToOperator = async (dataJson, today) => {
     let items
-    if(dataJson.usage.toLowerCase() !== 'backcharge'){
-        if(dataJson.brand.toLowerCase().includes('bus')){
-            items = {
-                date: today,
-                unit_no: dataJson.unit_no,
-                model: dataJson.brand,
-                kategori: 'Bus',
-                quota: 40,
-                used: 0,
-                additional: 0 
-            }
-        }else if(dataJson.brand.toLowerCase().includes('colt')){
-            items = {
-                date: today,
-                unit_no: dataJson.unit_no,
-                model: dataJson.brand,
-                kategori: 'Colt',
-                quota: 30,
-                used: 0,
-                additional: 0 
-            }
-        }else if(dataJson.brand.toLowerCase().includes('triton')){
-            items = {
-                date: today,
-                unit_no: dataJson.unit_no,
-                model: dataJson.brand,
-                kategori: "Triton",
-                quota: 20,
-                used: 0,
-                additional: 0 
-            }
-        }else{
-            return false
+    console.log(dataJson)
+    if(dataJson.EGI.toLowerCase().includes('bus elf')){
+        items = {
+            date: today,
+            unit_no: dataJson.unit_no,
+            model: dataJson.EGI,
+            kategori: dataJson.kategori,
+            quota: 40,
+            used: 0,
+            additional: 0 
         }
-    }else{
-        return false
+    }else {
+        const egiLower = dataJson.EGI.toLowerCase(); 
+        let quota = 0;
+        let kategori = dataJson.kategori;
+    
+        if (egiLower.includes('colt')) {
+            quota = 30;
+        } else if (egiLower.includes('triton') || dataJson.kategori.toLowerCase().includes('light vehicle')) {
+            quota = 20;
+        }
+    
+        items = {
+            date: today,
+            unit_no: dataJson.unit_no,
+            model: dataJson.EGI,
+            kategori: kategori,
+            quota: quota,
+            used: 0,
+            additional: 0
+        };
     }
     
     const sanitizedColumns = Object.keys(items).map(key => `"${key}"`);

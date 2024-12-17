@@ -48,7 +48,7 @@ const delData = async(params) => {
         WHERE fuelman_log.jde_operator = form_lkf.fuelman_id
           AND fuelman_log."date" = form_lkf."date"
           AND fuelman_log.station = form_lkf.station
-          AND form_lkf.lkf_id = $1;`, [params]);
+          AND form_lkf.lkf_id = $1`, [params]);
 
         await db.query('COMMIT');
         

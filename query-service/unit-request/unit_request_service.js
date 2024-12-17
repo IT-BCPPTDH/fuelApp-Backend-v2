@@ -2,6 +2,7 @@ const db = require('../../database/helper');
 const { formatYYYYMMDD, formatDateToDDMMYYYY, formattedHHMM } = require('../../helpers/dateHelper');
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
+const { base64ToImageReq } = require('../../helpers/base64toImage')
 
 const getSummaryUnitReq = async (params) => {
     try {
@@ -28,17 +29,25 @@ const getSummaryUnitReq = async (params) => {
 const insertUnitReq = async (data) => {
     try {
         const dt = new Date()
-        const { date, time, shift, unit_no, model, hmkm,  quota_request, reason, document, request_by, request_name, approve_by, 
+        let result
+        let { date,  shift, unit_no, model, quota_request, reason, document, request_by, request_name, approve_by, 
             approve_name, created_at, created_by} = data
-        const params = [date, time, shift, unit_no, model, hmkm, quota_request, reason,  document, request_by, request_name, approve_by, 
+        
+        let pic = await base64ToImageReq(document)
+
+        const params = [date, shift, unit_no, model, quota_request, reason,  pic, request_by, request_name, approve_by, 
             approve_name, created_at, created_by]
-        let result = await db.query(QUERY_STRING.addQuota, params)
 
         if(data.unit_no.includes('LV') || data.unit_no.includes('HLV')){
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [unit_no,date])
             const query = `UPDATE quota_usage SET additional = $1 WHERE "unit_no" = $2 and "date" = $3`;
 
-            const value = [quota_request, unit_no, date]
-            const res = await db.query(query, value);
+            if(existingData.rows.length > 0){
+                quota_request = parseFloat(quota_request) + parseFloat(existingData.rows[0].additional);
+                const value = [quota_request, unit_no, date]
+                const res = await db.query(query, value);
+                result = await db.query(QUERY_STRING.addQuota, params)
+            }
         }
 
         if(result.rowCount>0){
@@ -60,8 +69,7 @@ const tableUnitReq = async (params) => {
         const result = await db.query(QUERY_STRING.getAllReq, [tanggal])
         const formattedData = result.rows.map(item => ({
             ...item,
-            date: formatDateToDDMMYYYY(item.date),
-            time: formattedHHMM(item.time)
+            date: formatDateToDDMMYYYY(item.date)
         }));
         return formattedData
     } catch (error) {
