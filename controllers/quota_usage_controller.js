@@ -7,6 +7,7 @@ const logger = require("../helpers/pinoLog");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
 const { getUnitLvProto } = require('../helpers/proto/master-data');
 const { formatYYYYMMDD } = require('../helpers/dateHelper');
+const unitKuota = require('../data-json/unit_quota.json')
 
 
 async function bulkInsertQuotaDaily(bodyParams){
@@ -26,10 +27,8 @@ async function bulkInsertQuotaDaily(bodyParams){
                 data:checkData
             }
         }
-        
-        for (let index = 0; index < unit.length; index++) {
-            const element = unit[index];
-            const inserted = await insertToOperator(element, date)
+        for (const element of unitKuota) {
+            await insertToOperator(element, date);
         }
         
         return {
