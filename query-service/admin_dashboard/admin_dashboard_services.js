@@ -80,30 +80,32 @@ const calcDifferences = (data) => {
     return result;
 };
 
-const mergeStations = (data, targetPrefix) => {
+const mergeStations = (data, targetPrefixes) => {
     const groupedData = {};
   
     data.forEach(item => {
-      if (item.station.startsWith(targetPrefix)) {
-        if (!groupedData[targetPrefix]) {
-          groupedData[targetPrefix] = {
-            station: targetPrefix,
+      const matchedPrefix = targetPrefixes.find(prefix => item.station.startsWith(prefix));
+  
+      if (matchedPrefix) {
+        if (!groupedData[matchedPrefix]) {
+          groupedData[matchedPrefix] = {
+            station: matchedPrefix,
             total_issued: 0,
             total_transfer: 0,
             total_receive: 0,
             total_receive_kpc: 0
           };
         }
-        groupedData[targetPrefix].total_issued += item.total_issued;
-        groupedData[targetPrefix].total_transfer += item.total_transfer;
-        groupedData[targetPrefix].total_receive += item.total_receive;
-        groupedData[targetPrefix].total_receive_kpc += item.total_receive_kpc;
+        groupedData[matchedPrefix].total_issued += item.total_issued;
+        groupedData[matchedPrefix].total_transfer += item.total_transfer;
+        groupedData[matchedPrefix].total_receive += item.total_receive;
+        groupedData[matchedPrefix].total_receive_kpc += item.total_receive_kpc;
       } else {
         groupedData[item.station] = { ...item };
       }
     });
     return Object.values(groupedData);
-  };
+};
 
 const getTotalDashboard = async (params) => {
     try {
@@ -157,7 +159,8 @@ const getTableDashboard = async (params) => {
         const listData = await processData(queryData.rows)
         const prevClosing = await db.query(QUERY_STRING.getClosing,[prevDateBefore, prevDate])
         const listPrev = await groupClosing(prevClosing.rows)
-        const listForm = mergeStations(getFormStations.rows, 'TK1037')
+        const target = ['TK1037', 'TK1036']
+        const listForm = mergeStations(getFormStations.rows, target)
         const difference = await calcDifferences(queryData.rows)
         const mergedArray = listData.map(itemA => {
             const matchingItem = listForm.find(itemB => itemB.station === itemA.station);
@@ -165,7 +168,7 @@ const getTableDashboard = async (params) => {
             const matchingItem3 = difference.find(itemD => itemD.station === itemA.station);
             const closedData = itemA.opening_dip + matchingItem?.total_receive_kpc + matchingItem?.total_receive - matchingItem?.total_issued - matchingItem?.total_transfer
             const variant = (itemA.closing_dip !== null ? itemA.closing_dip : closedData) - closedData;
-            const interShiftND = matchingItem2.closing_dip - itemA.opening_dip
+            const interShiftND = matchingItem2?.closing_dip - itemA.opening_dip
             if (matchingItem) {
                 return {
                     station: itemA.station,
@@ -177,8 +180,8 @@ const getTableDashboard = async (params) => {
                     total_receive_kpc : matchingItem.total_receive_kpc ? matchingItem.total_receive_kpc.toLocaleString('en-US'): 0,
                     total_close_data : itemA.total_close_data == null ? closedData.toLocaleString('en-US') : itemA.total_close_data.toLocaleString('en-US'),
                     total_variant : itemA.total_variant == null? variant.toLocaleString('en-US') : itemA.total_variant.toLocaleString('en-US'), 
-                    intershiftDtoN: interShiftND ==  null ? interShiftND.toLocaleString('en-US') : '0',
-                    intershiftNtoD: matchingItem3.difference != null ? matchingItem3.difference.toLocaleString('en-US') : '0'
+                    intershiftDtoN: matchingItem3.difference != null ? matchingItem3.difference.toLocaleString('en-US') : '0',
+                    intershiftNtoD:interShiftND ==  null ? interShiftND.toLocaleString('en-US') : '0'
                 };
             }
             return itemA;
