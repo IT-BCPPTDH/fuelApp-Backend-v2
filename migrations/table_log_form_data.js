@@ -9,7 +9,7 @@ exports.up = function(knex) {
         table.string('no_unit', 8).notNullable();
         table.string('model_unit', 15).notNullable();
         table.string('owner', 15).nullable();
-        table.timestamp('date_trx').notNullable();
+        table.date('date_trx').notNullable();
         table.float('hm_last', 20);
         table.float('hm_km', 20).notNullable();
         table.float('qty_last', 20).notNullable();

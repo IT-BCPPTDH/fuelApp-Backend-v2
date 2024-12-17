@@ -52,22 +52,25 @@ const QUERY_STRING = {
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2 and "date" = $3`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
-    getOpeningDay: `select SUM(fl.opening_dip) as total_opening from form_lkf fl 
-    where fl."date" between $1 and $2`,
 
-    getTotalLkfs: `select SUM(fl.opening_dip) as total_opening, SUM( fl.closing_dip) as total_closing,
+    getTotalLkfs: `select SUM(fl.closing_dip) as total_closing,
     SUM(fl.close_data) As total_close_data,
     SUM(fl.variant) As total_variant from form_lkf fl 
     where fl."date" between $1 and $2`,
+
+    getClosing : `select fl.station, fl.shift, fl.closing_dip from form_lkf fl 
+    WHERE "date" between $1 and $2`,
+
+    getList : `select distinct fl.station, fl.shift, fl.opening_dip, fl.closing_dip as closing from form_lkf fl 
+    WHERE fl."date" between $1 and $2`,
 
     getTotalType : `select 
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END),0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END),0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt KPC' THEN fd.qty ELSE 0 END),0) AS total_receive_kpc,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END),0) AS total_receive
-    from form_lkf fl
-    left join form_data fd on fd.lkf_id  = fl.lkf_id 
-    where fl."date" between $1 and $2`,
+    from form_data fd
+    where fd.date_trx between $1 and $2`,
 
     getPrevious : `SELECT sum(DISTINCT closing_dip) as total_closing, 
     SUM(fl.close_data) As total_close_data, SUM(fl.variant) As total_variant
@@ -162,9 +165,9 @@ const QUERY_STRING = {
 
     getTableFormData: `select * from form_data fd where lkf_id = $1 and fd."isDelete" = false`,
 
-    addQuota: `INSERT INTO form_table_request(date, time, shift, unit_no, model, hmkm, station, quota_request, reason, document,request_by, request_name, approve_by, 
+    addQuota: `INSERT INTO form_table_request(date, shift, unit_no, model, quota_request, reason,  document, request_by, request_name, approve_by, 
         approve_name, created_at, created_by) 
-        values($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13,$14,$15, $16)`,
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11, $12, $13)`,
     
     getQuotaTotal:`select SUM(ftr.quota_request) as total, count(ftr.unit_no) as total_unit from form_table_request ftr 
     where ftr."date" = $1`,
@@ -304,7 +307,7 @@ const QUERY_STRING = {
     fl.variant,fl.close_data, fl.flow_meter_end,fl.opening_sonding, fl.hm_start, fl.hm_end, fl.shift, fl.station`,
 
     getClosingDip : `select sum(fl.closing_dip) as total_before from form_lkf fl 
-    where fl."date" between $1 and $2`,
+    where fl."date" between $1 and $2 and shift = 'Night'`,
 
     getLkfSum : `select fl.station, SUM(fl.opening_dip) as total_opening, sum(fl.closing_dip) as total_closing, 
     SUM(fl.close_data) as close_data, sum(fl.variant) as variant from form_lkf fl 

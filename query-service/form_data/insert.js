@@ -95,7 +95,6 @@ const insertToForm = async (dataJson) => {
             if(existingData.rows.length > 0){
 
                 dataJson.qty += existingData.rows[0].used
-                console.log('disini')
             }
 
             const params = [dataJson.qty, dataJson.no_unit, dataJson.date_trx]
@@ -142,6 +141,8 @@ const editForm = async (updateFields) => {
         const values = Object.keys(updateFields)
             .filter(field => field !== 'id')
             .map(field => updateFields[field]);
+
+        //buatkan untuk handle gambar dan handle limited quota
         
         values.push(updateFields.id);
 
