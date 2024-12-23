@@ -11,7 +11,7 @@ exports.up = function(knex) {
         table.float('hm_start', 20).notNullable();
         table.float('hm_end', 20).nullable();
         table.string('site', 8).notNullable();
-        table.string('fuelman_id', 8).notNullable();
+        table.string('fuelman_id', 20).notNullable();
         table.string('station', 20).notNullable();
         table.float('opening_dip', 20).notNullable();
         table.float('opening_sonding', 20).notNullable();

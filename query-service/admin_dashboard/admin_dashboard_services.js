@@ -43,7 +43,7 @@ const processData = async(data) => {
     return {
       station: Night?.station || Day?.station,
       opening_dip: openingDip,
-      closing_dip: closingDip,
+      closing_dip: closingDip ? closingDip : 0,
     };
   })
 
@@ -53,7 +53,7 @@ const processData = async(data) => {
 const calculateTotal = async (data) => {
   return data.reduce((totals, item) => {
     totals.opening_dip += item.opening_dip;
-    totals.closing_dip += item.closing_dip;
+    totals.closing_dip += item.closing_dip ?? 0;
     return totals;
   }, { opening_dip: 0, closing_dip: 0 });
 }
@@ -65,9 +65,9 @@ const calcDifferences = (data) => {
         acc[normalizedStation][item.shift] = item;
         return acc;
       }, {});
-    
+
       const result = Object.entries(groupedData).map(([station, { Day, Night }]) => {
-        const diff = Night && Day 
+        const diff = (Night?.opening_dip && Day?.closing)
           ? Night.opening_dip - Day.closing
           : 0;
     
@@ -107,6 +107,19 @@ const mergeStations = (data, targetPrefixes) => {
     return Object.values(groupedData);
 };
 
+
+const mergeNtoD = (data1, data2) => {
+  const map1 = Object.fromEntries(data1.map(item => [item.station, item.opening_dip ?? 0]));
+  const map2 = Object.fromEntries(data2.map(item => [item.station, item.closing_dip ?? 0]));
+
+  const allStations = new Set([...Object.keys(map1), ...Object.keys(map2)]);
+
+  return Array.from(allStations).map(station => ({
+    station,
+    total: (map1[station] || 0) - (map2[station] || 0)
+  }));
+};
+
 const getTotalDashboard = async (params) => {
     try {
         const dateNow = formatYYYYMMDD(params.tanggal)
@@ -123,8 +136,8 @@ const getTotalDashboard = async (params) => {
         const closedData = totalData.opening_dip + dataType.rows[0].total_receive_kpc + dataType.rows[0].total_receive
          - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
         
-        const variant = (totalData.closing_dip !== null ? totalData.closing_dip : closedData) - closedData;
-        const interShiftND = totalPrev - totalData.opening_dip
+        const variant = (totalData.closing_dip !== 0 ? totalData.closing_dip : closedData) - closedData;
+        const interShiftND = (totalData.opening_dip ?? 0) - (totalPrev ?? 0) ;
         const difference = await calcDifferences(queryData.rows)
         const totalDiff = difference.reduce((sum, item) => sum + item.difference, 0);
         const data = { 
@@ -135,9 +148,9 @@ const getTotalDashboard = async (params) => {
             issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
             tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
             closeData: closedData ? closedData.toLocaleString('en-US') : 0,
-            closeSonding: totalData.closing_dip === null ? closedData.toLocaleString('en-US') : totalData.closing_dip.toLocaleString('en-US'),
+            closeSonding: totalData.closing_dip === 0 ? closedData.toLocaleString('en-US') : totalData.closing_dip.toLocaleString('en-US'),
             variant: variant ? variant.toLocaleString('en-US') : 0,
-            intershiftNtoD: interShiftND ?  interShiftND.toLocaleString('en-US') : 0,
+            intershiftNtoD: interShiftND !== null ?  interShiftND.toLocaleString('en-US') : 0,
             intershiftDtoN: totalDiff ? totalDiff.toLocaleString('en-US') : 0
         }
         return data
@@ -162,18 +175,19 @@ const getTableDashboard = async (params) => {
         const target = ['TK1037', 'TK1036']
         const listForm = mergeStations(getFormStations.rows, target)
         const difference = await calcDifferences(queryData.rows)
+        const listNtoD = mergeNtoD(listData, listPrev)
         const mergedArray = listData.map(itemA => {
             const matchingItem = listForm.find(itemB => itemB.station === itemA.station);
             const matchingItem2 = listPrev.find(itemC => itemC.station === itemA.station);
             const matchingItem3 = difference.find(itemD => itemD.station === itemA.station);
             const closedData = itemA.opening_dip + matchingItem?.total_receive_kpc + matchingItem?.total_receive - matchingItem?.total_issued - matchingItem?.total_transfer
-            const variant = (itemA.closing_dip !== null ? itemA.closing_dip : closedData) - closedData;
-            const interShiftND = matchingItem2?.closing_dip - itemA.opening_dip
+            const variant = (itemA.closing_dip !== 0 ? itemA.closing_dip : closedData) - closedData;
+            const interShiftND = (itemA.opening_dip ?? 0) -  (matchingItem2?.closing_dip ?? 0)
             if (matchingItem) {
                 return {
                     station: itemA.station,
                     total_opening : itemA.opening_dip ? itemA.opening_dip.toLocaleString('en-US') : 0,
-                    total_closing: itemA.closing_dip ?  itemA.closing_dip.toLocaleString('en-US') : 0,
+                    total_closing: itemA.closing_dip !== 0 ?  itemA.closing_dip.toLocaleString('en-US') : closedData.toLocaleString('en-US'),
                     total_issued : matchingItem.total_issued ? matchingItem.total_issued.toLocaleString('en-US') : 0,
                     total_transfer : matchingItem.total_transfer ? matchingItem.total_transfer.toLocaleString('en-US') : 0,
                     total_receive : matchingItem.total_receive ? matchingItem.total_receive.toLocaleString('en-US') : 0,
@@ -181,7 +195,7 @@ const getTableDashboard = async (params) => {
                     total_close_data : itemA.total_close_data == null ? closedData.toLocaleString('en-US') : itemA.total_close_data.toLocaleString('en-US'),
                     total_variant : itemA.total_variant == null? variant.toLocaleString('en-US') : itemA.total_variant.toLocaleString('en-US'), 
                     intershiftDtoN: matchingItem3.difference != null ? matchingItem3.difference.toLocaleString('en-US') : '0',
-                    intershiftNtoD:interShiftND ==  null ? interShiftND.toLocaleString('en-US') : '0'
+                    intershiftNtoD:interShiftND !==  null ? interShiftND.toLocaleString('en-US') : 0
                 };
             }
             return itemA;

@@ -8,7 +8,6 @@ const { formatDateOption,formatYYYYMMDD,formatDateToDDMMYYYY,prevFormatYYYYMMDD 
 
 const insertToOperator = async (dataJson, today) => {
     let items
-    console.log(dataJson)
     if(dataJson.EGI.toLowerCase().includes('bus elf')){
         items = {
             date: today,
