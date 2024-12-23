@@ -15,6 +15,15 @@ module.exports = (app) => {
     
         const params = req.getParameter(0);
         const imagePath = path.join(__dirname, '../assets/flowmeter/', params);
+
+        if (!fs.existsSync(imagePath)) {
+            res.cork(() => {
+                res.writeStatus('404 Not Found')
+                   .writeHeader('Access-Control-Allow-Origin', '*')
+                   .end('Image not found');
+            });
+            return;
+        }
     
         fs.readFile(imagePath, (err, data) => {
             res.cork(() => {
@@ -41,7 +50,16 @@ module.exports = (app) => {
     
         const params = req.getParameter(0);
         const imagePath = path.join(__dirname, '../assets/signature/', params);
-    
+
+        if (!fs.existsSync(imagePath)) {
+            res.cork(() => {
+                res.writeStatus('404 Not Found')
+                   .writeHeader('Access-Control-Allow-Origin', '*')
+                   .end('Image not found');
+            });
+            return;
+        }
+        
         fs.readFile(imagePath, (err, data) => {
             res.cork(() => {
                 if (err) {

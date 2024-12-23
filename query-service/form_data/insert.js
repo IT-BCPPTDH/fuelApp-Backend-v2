@@ -130,6 +130,7 @@ const deleteForm = async (params) => {
 
 const editForm = async (updateFields) => {
     try {
+        let result
         const setClauses = Object.keys(updateFields)
             .filter(field => field !== 'id')
             .map((field, index) => {
@@ -142,12 +143,24 @@ const editForm = async (updateFields) => {
             .filter(field => field !== 'id')
             .map(field => updateFields[field]);
 
-        //buatkan untuk handle gambar dan handle limited quota
         
         values.push(updateFields.id);
 
+        console.log(updateFields.date_trx)
+
+        if (updateFields.no_unit.includes('LV') || updateFields.no_unit.includes('HLV')) {
+            
+            try {
+                const params = [updateFields.qty, updateFields.no_unit, formatYYYYMMDD(updateFields.date_trx)];
+                const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
+                const res = await db.query(query, params);
+                console.log("Query executed successfully:", res);
+              } catch (error) {
+                console.error("Error executing query:", error);
+              }
+        }
         const query = `UPDATE form_data SET ${setClauses} WHERE id = $${values.length}`;
-        const result = await db.query(query, values);
+        result = await db.query(query, values);
 
         return result.rowCount > 0; 
     } catch (error) {
