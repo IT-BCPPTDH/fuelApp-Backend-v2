@@ -53,16 +53,14 @@ async function logoutTab(data) {
 async function postLog(data) {
     try{
         let result = await insertLog(data)
-        if(result.success){
+        if(result){
             return {
                 status: HTTP_STATUS.OK,
                 message: 'Data Created',
-                data: result.data
             };
         }else{
             return {
                 status: HTTP_STATUS.NOT_FOUND,
-                message: result.message,
             };
         }
     } catch(err) {
@@ -77,16 +75,14 @@ async function postLog(data) {
 async function editLog(data) {
     try{
         let result = await updateLog(data)
-        if(result.success){
+        if(result){
             return {
                 status: HTTP_STATUS.OK,
-                message: 'Data Created',
-                data: result.data
+                message: 'Data Created'
             };
         }else{
             return {
-                status: HTTP_STATUS.NOT_FOUND,
-                message: result.message,
+                status: HTTP_STATUS.NOT_FOUND
             };
         }
     } catch(err) {
