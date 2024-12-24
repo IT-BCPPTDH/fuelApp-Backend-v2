@@ -51,7 +51,7 @@ cron.schedule('0 0 * * *', async () => {
 
   try {
     const today = new Date().toISOString().split('T')[0];
-    // const data = await bulkInsertQuotaDaily({tanggal: today});
+    const data = await bulkInsertQuotaDaily({tanggal: today});
     console.log("Done insert data!");
     return {
         status:HTTP_STATUS.OK,
