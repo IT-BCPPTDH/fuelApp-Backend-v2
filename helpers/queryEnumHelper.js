@@ -46,7 +46,7 @@ const QUERY_STRING = {
 
     getDataByDate: `Select * from form_data where  DATE(date_trx) = ANY($1) AND "isDelete" = false`,
 
-    insert_log : `INSERT INTO fuelman_log(lkf_id, date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4, $5)`,
+    insert_log : `INSERT INTO fuelman_log(lkf_id, date, jde_operator, name_operator, station, login_time) VALUES($1, $2, $3, $4, $5, $6)`,
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE lkf_id = $2 and "date" = $3`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
