@@ -45,7 +45,7 @@ const postFormData = async (data) => {
     console.log(data)
     try {
         const dt = new Date();
-        let sign, pic
+        let sign, pic, sync
         
         let { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data;
 
@@ -54,7 +54,9 @@ const postFormData = async (data) => {
             pic = await base64ToImageFlow(photo)
         }
         
-        const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, sign, type, pic, created_by ];
+        sync = dt
+        
+        const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, sign, type, pic, sync, created_by ];
 
         if (data.no_unit.includes('LV') || data.no_unit.includes('HLV')) {
             const updateQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
@@ -83,18 +85,15 @@ const insertToForm = async (dataJson) => {
     try {
         const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
-        // console.log(123,sanitizedColumns)
-        // console.log(234,valuesPlaceholders)
         const createOperatorQuery = `
           INSERT INTO form_data (${sanitizedColumns.join(', ')})
           VALUES (${valuesPlaceholders})
         `;
 
         const values = Object.keys(dataJson).map(key => dataJson[key]);
-        // console.log(333,values)
+        
         const result = await db.query(createOperatorQuery, values);
 
-        //jumlahkan dulu bila qty dari nomor yang sama
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
             
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dataJson.date_trx])
@@ -170,10 +169,7 @@ const editForm = async (updateFields) => {
         
         values.push(updateFields.id);
 
-        console.log(updateFields.date_trx)
-
         if (updateFields.no_unit.includes('LV') || updateFields.no_unit.includes('HLV')) {
-            
             try {
                 const params = [updateFields.qty, updateFields.no_unit, formatYYYYMMDD(updateFields.date_trx)];
                 const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
