@@ -107,18 +107,67 @@ const mergeStations = (data, targetPrefixes) => {
     return Object.values(groupedData);
 };
 
-
 const mergeNtoD = (data1, data2) => {
   const map1 = Object.fromEntries(data1.map(item => [item.station, item.opening_dip ?? 0]));
   const map2 = Object.fromEntries(data2.map(item => [item.station, item.closing_dip ?? 0]));
-
+  
   const allStations = new Set([...Object.keys(map1), ...Object.keys(map2)]);
+  return Array.from(allStations).map(station => {
+    if (!map2[station]) {
+      return { station, total: 0 };
+    }
+    
+    if (!map1[station]) {
+      return { station, total: 0 };
+    }
 
-  return Array.from(allStations).map(station => ({
-    station,
-    total: (map1[station] || 0) - (map2[station] || 0)
-  }));
+    const openingDip = map1[station];
+    const closingDip = map2[station];
+
+    return { station, total: openingDip - closingDip };
+  });
 };
+
+const calc = (data) => {
+  const totals = data.reduce((acc, item) => {
+    Object.keys(item).forEach((key) => {
+      if (key !== 'station') {
+        const value = typeof item[key] === 'string' ? parseFloat(item[key].replace(/,/g, '')) : item[key];
+        acc[key] = (acc[key] || 0) + (value || 0); 
+      }
+    });
+    return acc;
+  }, {});
+
+  return totals
+}
+
+const mergeArray = (listData, listForm, difference, listDtoN) => {
+    const merged= listData.map(itemA => {
+      const matchingItem = listForm.find(itemB => itemB.station === itemA.station);
+      const matchingItem2 = listDtoN.find(itemC => itemC.station === itemA.station);
+      const matchingItem3 = difference.find(itemD => itemD.station === itemA.station);
+      const closedData = itemA.opening_dip + matchingItem?.total_receive_kpc + matchingItem?.total_receive - matchingItem?.total_issued - matchingItem?.total_transfer
+      const variant = (itemA.closing_dip !== 0 ? itemA.closing_dip : closedData) - closedData;
+      if (matchingItem) {
+          return {
+              station: itemA.station,
+              total_opening : itemA.opening_dip ? itemA.opening_dip.toLocaleString('en-US') : 0,
+              total_closing: itemA.closing_dip !== 0 ?  itemA.closing_dip.toLocaleString('en-US') : closedData.toLocaleString('en-US'),
+              total_issued : matchingItem.total_issued ? matchingItem.total_issued.toLocaleString('en-US') : 0,
+              total_transfer : matchingItem.total_transfer ? matchingItem.total_transfer.toLocaleString('en-US') : 0,
+              total_receive : matchingItem.total_receive ? matchingItem.total_receive.toLocaleString('en-US') : 0,
+              total_receive_kpc : matchingItem.total_receive_kpc ? matchingItem.total_receive_kpc.toLocaleString('en-US'): 0,
+              total_close_data : itemA.total_close_data == null ? closedData.toLocaleString('en-US') : itemA.total_close_data.toLocaleString('en-US'),
+              total_variant : itemA.total_variant == null? variant.toLocaleString('en-US') : itemA.total_variant.toLocaleString('en-US'), 
+              intershiftNtoD: matchingItem3.difference != null ? matchingItem3.difference.toLocaleString('en-US') : '0', 
+              intershiftDtoN:matchingItem2.total !==  null ? matchingItem2.total.toLocaleString('en-US') : 0
+          };
+      }
+      return itemA;
+  });
+  return merged
+}
 
 const getTotalDashboard = async (params) => {
     try {
@@ -127,31 +176,29 @@ const getTotalDashboard = async (params) => {
         const prevDate = prevFormatYYYYMMDD(dateNow)
         const prevDateBefore = prevFormatYYYYMMDD(dateBefore)
         const prevClosing = await db.query(QUERY_STRING.getClosing,[prevDateBefore, prevDate])
+        const getFormStations =  await db.query(QUERY_STRING.getFormSum, [dateBefore, dateNow])
+        const queryData = await db.query(QUERY_STRING.getList,[dateBefore, dateNow])
+        const listData = await processData(queryData.rows)
         const listPrev = await groupClosing(prevClosing.rows)
         const totalPrev = listPrev.reduce((sum, item) => sum + item.closing_dip, 0);
-        const queryData = await db.query(QUERY_STRING.getList,[dateBefore, dateNow])
-        const datas = await processData(queryData.rows)
-        const totalData = await calculateTotal(datas)
-        let dataType = await db.query(QUERY_STRING.getTotalType,[dateBefore, dateNow])
-        const closedData = totalData.opening_dip + dataType.rows[0].total_receive_kpc + dataType.rows[0].total_receive
-         - dataType.rows[0].total_issued - dataType.rows[0].total_transfer
-        
-        const variant = (totalData.closing_dip !== 0 ? totalData.closing_dip : closedData) - closedData;
-        const interShiftND = (totalData.opening_dip ?? 0) - (totalPrev ?? 0) ;
+        const target = ['TK1037', 'TK1036']
+        const listForm = mergeStations(getFormStations.rows, target)
         const difference = await calcDifferences(queryData.rows)
-        const totalDiff = difference.reduce((sum, item) => sum + item.difference, 0);
+        const listDtoN = mergeNtoD(listData, listPrev)
+        const mergeData = mergeArray(listData, listForm, difference, listDtoN)
+        const total = calc(mergeData)
         const data = { 
             prevSonding : totalPrev ? totalPrev.toLocaleString('en-US') : 0,
-            openSonding : totalData.opening_dip ? totalData.opening_dip.toLocaleString('en-US') : 0,
-            recipt: dataType.rows[0].total_receive? dataType.rows[0].total_receive.toLocaleString('en-US') : 0,
-            reciptKpc: dataType.rows[0].total_receive_kpc ? dataType.rows[0].total_receive_kpc.toLocaleString('en-US') : 0,
-            issuedTrx: dataType.rows[0].total_issued ? dataType.rows[0].total_issued.toLocaleString('en-US') : 0,
-            tfTrx: dataType.rows[0].total_transfer ? dataType.rows[0].total_transfer.toLocaleString('en-US') : 0,
-            closeData: closedData ? closedData.toLocaleString('en-US') : 0,
-            closeSonding: totalData.closing_dip === 0 ? closedData.toLocaleString('en-US') : totalData.closing_dip.toLocaleString('en-US'),
-            variant: variant ? variant.toLocaleString('en-US') : 0,
-            intershiftNtoD: interShiftND !== null ?  interShiftND.toLocaleString('en-US') : 0,
-            intershiftDtoN: totalDiff ? totalDiff.toLocaleString('en-US') : 0
+            openSonding : total.total_opening ? total.total_opening.toLocaleString('en-US') : 0,
+            recipt: total.total_receive? total.total_receive.toLocaleString('en-US') : 0,
+            reciptKpc: total.total_receive_kpc ? total.total_receive_kpc.toLocaleString('en-US') : 0,
+            issuedTrx: total.total_issued ? total.total_issued.toLocaleString('en-US') : 0,
+            tfTrx: total.total_transfer ? total.total_transfer.toLocaleString('en-US') : 0,
+            closeData: total.total_close_data ? total.total_close_data.toLocaleString('en-US') : 0,
+            closeSonding: total.closing_dip === 0 ? total.total_close_data.toLocaleString('en-US') : total.total_closing.toLocaleString('en-US'),
+            variant: total.total_variant ? total.total_variant.toLocaleString('en-US') : 0,
+            intershiftNtoD: total.intershiftDtoN !== null ?  total.intershiftDtoN.toLocaleString('en-US') : 0,
+            intershiftDtoN: total.intershiftNtoD ? total.intershiftNtoD.toLocaleString('en-US') : 0
         }
         return data
     } catch (error) {
@@ -175,40 +222,15 @@ const getTableDashboard = async (params) => {
         const target = ['TK1037', 'TK1036']
         const listForm = mergeStations(getFormStations.rows, target)
         const difference = await calcDifferences(queryData.rows)
-        const listNtoD = mergeNtoD(listData, listPrev)
-        const mergedArray = listData.map(itemA => {
-            const matchingItem = listForm.find(itemB => itemB.station === itemA.station);
-            const matchingItem2 = listPrev.find(itemC => itemC.station === itemA.station);
-            const matchingItem3 = difference.find(itemD => itemD.station === itemA.station);
-            const closedData = itemA.opening_dip + matchingItem?.total_receive_kpc + matchingItem?.total_receive - matchingItem?.total_issued - matchingItem?.total_transfer
-            const variant = (itemA.closing_dip !== 0 ? itemA.closing_dip : closedData) - closedData;
-            const interShiftND = (itemA.opening_dip ?? 0) -  (matchingItem2?.closing_dip ?? 0)
-            if (matchingItem) {
-                return {
-                    station: itemA.station,
-                    total_opening : itemA.opening_dip ? itemA.opening_dip.toLocaleString('en-US') : 0,
-                    total_closing: itemA.closing_dip !== 0 ?  itemA.closing_dip.toLocaleString('en-US') : closedData.toLocaleString('en-US'),
-                    total_issued : matchingItem.total_issued ? matchingItem.total_issued.toLocaleString('en-US') : 0,
-                    total_transfer : matchingItem.total_transfer ? matchingItem.total_transfer.toLocaleString('en-US') : 0,
-                    total_receive : matchingItem.total_receive ? matchingItem.total_receive.toLocaleString('en-US') : 0,
-                    total_receive_kpc : matchingItem.total_receive_kpc ? matchingItem.total_receive_kpc.toLocaleString('en-US'): 0,
-                    total_close_data : itemA.total_close_data == null ? closedData.toLocaleString('en-US') : itemA.total_close_data.toLocaleString('en-US'),
-                    total_variant : itemA.total_variant == null? variant.toLocaleString('en-US') : itemA.total_variant.toLocaleString('en-US'), 
-                    intershiftDtoN: matchingItem3.difference != null ? matchingItem3.difference.toLocaleString('en-US') : '0',
-                    intershiftNtoD:interShiftND !==  null ? interShiftND.toLocaleString('en-US') : 0
-                };
-            }
-            return itemA;
-        });
-        return mergedArray
+        const listDtoN = mergeNtoD(listData, listPrev)
+        const mergeData = mergeArray(listData, listForm, difference, listDtoN)
+        return mergeData
     }catch(err){
         logger.error(err)
         console.error('Error during update:', err);
         return false;
     }
 }
-
-
 
 module.exports = {
     getTotalDashboard,
