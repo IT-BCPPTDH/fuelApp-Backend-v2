@@ -5,6 +5,7 @@ const app = serverRoutes.App();
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+// process.env.TZ = 'Asia/Makassar';
 
 const port = process.env.PORT || 9111;
 
