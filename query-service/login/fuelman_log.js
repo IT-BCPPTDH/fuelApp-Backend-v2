@@ -22,8 +22,8 @@ const insertLog = async(data) => {
 
 const updateLog = async(data) => {
     try {
-        let { logout_time, id, date } = data
-        const params = [logout_time, id, date]
+        let { logout_time, lkf_id, date } = data
+        const params = [logout_time, lkf_id, date]
         let result = await db.query(QUERY_STRING.update_log, params)
         if(result.rowCount>0){
             return result.rows[0];
