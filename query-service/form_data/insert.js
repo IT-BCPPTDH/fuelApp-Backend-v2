@@ -42,14 +42,18 @@ const { formatYYYYMMDD } = require('../../helpers/dateHelper');
 
 
 const postFormData = async (data) => {
+    console.log(data)
     try {
         const dt = new Date();
+        let sign, pic
         
         let { from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, signature, type, photo, created_by } = data;
 
-        let sign = await base64ToImageSign(signature)
-        let pic = await base64ToImageFlow(photo)
-
+        if(photo !== null || signature !== null){
+            sign = await base64ToImageSign(signature)
+            pic = await base64ToImageFlow(photo)
+        }
+        
         const params = [ from_data_id, no_unit, model_unit, owner, date_trx, hm_last, hm_km, qty_last, qty, flow_start, flow_end, jde_operator, name_operator, start, end, fbr, lkf_id, sign, type, pic, created_by ];
 
         if (data.no_unit.includes('LV') || data.no_unit.includes('HLV')) {
@@ -116,6 +120,24 @@ const insertToForm = async (dataJson) => {
 
 const deleteForm = async (params) => {
     try{
+        const getData = await db.query(QUERY_STRING.getDataId, [params])
+        const extractedData = getData.rows.map(item => ({
+            unit: item.no_unit,
+            date: item.date_trx,
+            qty : item.qty
+        }));
+
+        for (const data of extractedData) {
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.unit, data.date]);
+            let updatedUsed
+            if(existingData.rows.length > 0){
+                updatedUsed = existingData.rows[0].used - data.qty; 
+            }
+            const params = [updatedUsed, data.unit, data.date]
+            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
+            const res = await db.query(query, params)
+          
+        }
         const res = await db.query(QUERY_STRING.DELETE_FORM_DATA, [params])
         if(res){
             return true

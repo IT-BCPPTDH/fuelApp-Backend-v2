@@ -1,6 +1,7 @@
 const logger = require("../helpers/pinoLog");
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { getDataLogin, logoutUser} = require("../query-service/login/post-login");
+const { insertLog, updateLog } = require("../query-service/login/fuelman_log")
 
 async function loginPost(data) {
     try{
@@ -49,8 +50,56 @@ async function logoutTab(data) {
     }
 }
 
+async function postLog(data) {
+    try{
+        let result = await insertLog(data)
+        if(result.success){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Created',
+                data: result.data
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: result.message,
+            };
+        }
+    } catch(err) {
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
 
+async function editLog(data) {
+    try{
+        let result = await updateLog(data)
+        if(result.success){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data Created',
+                data: result.data
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: result.message,
+            };
+        }
+    } catch(err) {
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
 module.exports ={
     loginPost,
-    logoutTab
+    logoutTab,
+    postLog,
+    editLog
 }

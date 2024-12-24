@@ -39,10 +39,28 @@ const editData = async(updateFields) => {
 
 const delData = async(params) => {
     try {
+        const getData = await db.query(QUERY_STRING.getHomeTable, [params])
+        const extractedData = getData.rows.map(item => ({
+            unit: item.no_unit,
+            date: item.date_trx,
+            qty : item.qty
+        }));
+
+        for (const data of extractedData) {
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.unit, data.date]);
+            let updatedUsed
+            if(existingData.rows.length > 0){
+                updatedUsed = existingData.rows[0].used - data.qty; 
+            }
+            const params = [updatedUsed, data.unit, data.date]
+            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
+            const res = await db.query(query, params)
+          
+        }
         await db.query('BEGIN')
         await db.query(`DELETE FROM form_lkf WHERE lkf_id = $1`, [params]);
         await db.query(`DELETE FROM form_data
-        WHERE lkf_id = $1;`, [params]);
+        WHERE lkf_id = $1`, [params]);
         await db.query(`DELETE FROM fuelman_log
         USING form_lkf
         WHERE fuelman_log.jde_operator = form_lkf.fuelman_id
