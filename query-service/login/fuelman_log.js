@@ -9,7 +9,7 @@ const insertLog = async(data) => {
         const params = [lkf_id, date, jde_operator, name_operator, station, login_time]
         let result = await db.query(QUERY_STRING.insert_log, params)
         if(result.rowCount>0){
-            return result.rows[0];
+            return true;
         }else{
             return false
         }
@@ -26,7 +26,7 @@ const updateLog = async(data) => {
         const params = [logout_time, lkf_id, date]
         let result = await db.query(QUERY_STRING.update_log, params)
         if(result.rowCount>0){
-            return result.rows[0];
+            return true
         }else{
             return false
         }
