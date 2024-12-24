@@ -171,10 +171,14 @@ const editForm = async (updateFields) => {
 
         if (updateFields.no_unit.includes('LV') || updateFields.no_unit.includes('HLV')) {
             try {
-                const params = [updateFields.qty, updateFields.no_unit, formatYYYYMMDD(updateFields.date_trx)];
+                let total 
+                const existingData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.no_unit,updateFields.date_trx])
+                if(existingData.rows.length > 0){
+                    total = existingData.rows[0].used - parseFloat(updateFields.qty) 
+                }
+                const params = [total, updateFields.no_unit, formatYYYYMMDD(updateFields.date_trx)];
                 const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
                 const res = await db.query(query, params);
-                console.log("Query executed successfully:", res);
               } catch (error) {
                 console.error("Error executing query:", error);
               }
