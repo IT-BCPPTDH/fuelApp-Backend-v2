@@ -1,6 +1,5 @@
 
 const QUERY_STRING = {
-    
     getLastLKF:`SELECT * 
     FROM form_lkf fl 
     WHERE station = $1 
@@ -37,8 +36,7 @@ const QUERY_STRING = {
     getLasTrx:`
         SELECT DISTINCT ON (fd.no_unit) no_unit, hm_km,qty
         FROM form_data fd
-        ORDER BY fd.no_unit, fd.created_at DESC;
-    `,
+        ORDER BY fd.no_unit, fd.created_at DESC;`,
 
     getExistingQuota : `select * from quota_usage where "unit_no" = $1 and "date" = $2 and "isDelete" = false and is_active = true`,
 
@@ -48,7 +46,7 @@ const QUERY_STRING = {
 
     getDataByDate: `Select * from form_data where  DATE(date_trx) = ANY($1) AND "isDelete" = false`,
 
-    insert_log : `INSERT INTO fuelman_log(date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4)`,
+    insert_log : `INSERT INTO fuelman_log(lkf_id, date, jde_operator, name_operator, station) VALUES($1, $2, $3, $4, $5)`,
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE id = $2 and "date" = $3`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
@@ -214,6 +212,9 @@ const QUERY_STRING = {
 
     getHomeTable: `select * from form_data fd 
     where fd.lkf_id = $1`,
+
+    getDataId: `select * from form_data fd 
+    where fd.from_data_id = $1`,
     
 
     getStationShiftDay: `select  SUM(distinct fl.opening_dip) as total_open, fl.shift, SUM(distinct fl.closing_dip) as total_close,
@@ -264,7 +265,6 @@ const QUERY_STRING = {
 
     getAllDataStation :`select SUM(distinct fl.opening_dip) as total_open, SUM(distinct fl.closing_dip) as total_close,
     SUM(distinct fl.variant) AS variant,
-    SUM(distinct fl.close_data) AS close_data,
     COALESCE(SUM(CASE WHEN fd.type = 'Issued' THEN fd.qty ELSE 0 END), 0) AS total_issued,
     COALESCE(SUM(CASE WHEN fd.type = 'Transfer' THEN fd.qty ELSE 0 END), 0) AS total_transfer,
     COALESCE(SUM(CASE WHEN fd.type = 'Receipt' THEN fd.qty ELSE 0 END), 0) AS total_receive,
@@ -364,24 +364,12 @@ const QUERY_STRING = {
 
     getClosingDipStation : `select sum(fl.closing_dip) as total_before from form_lkf fl 
         where fl."date" between $1 and $2 and fl.shift = 'Night'`,
-
-    getDtoN : `SELECT SUM(CASE WHEN fl.shift = 'Day' THEN fl.closing_dip ELSE 0 END) AS total_closing_dip_day,
-        SUM(CASE WHEN fl.shift = 'Night' THEN fl.opening_dip ELSE 0 END) AS total_opening_dip_night
-        FROM form_lkf fl WHERE fl."date" between $1 and $2`,
     
     prevOpeningStation : `SELECT fl.station,
     SUM(CASE WHEN fl.shift = 'Day' THEN fl.opening_dip ELSE 0 END) AS total_opening_day,
     SUM(CASE WHEN fl.shift = 'Night' THEN fl.closing_dip ELSE 0 END) AS total_closing_night
     FROM form_lkf fl WHERE fl."date" BETWEEN $1 AND $2
     GROUP  fl.station`,
-
-    stationDtoN : ` SELECT fl.station,
-        (SELECT closing_dip FROM form_lkf 
-         WHERE station = fl.station AND "date" BETWEEN $1 AND $2 AND shift = 'Day' LIMIT 1) AS closing_dip_day,
-        (SELECT opening_dip FROM form_lkf WHERE station = fl.station 
-           AND "date" BETWEEN $1 AND $2 AND shift = 'Night' LIMIT 1) AS opening_dip_night
-    FROM form_lkf fl WHERE fl."date" BETWEEN $1 AND $2 
-    GROUP BY fl.station;`,
 
     closingPrevStation : `select fl.station, fl.closing_dip as closing_dip_before from form_lkf fl 
         where fl."date" between $1 and $2 and fl.shift = 'Night' GROUP BY 1,2`,
