@@ -5,6 +5,7 @@
 exports.up = function(knex) {
     return knex.schema.createTable('fuelman_log', function(table) {
         table.increments('id').primary();
+        table.string('lkf_id', 20).notNullable();
         table.date('date').notNullable();
         table.string('jde_operator', 8).notNullable();
         table.string('name_operator', 25).nullable();
