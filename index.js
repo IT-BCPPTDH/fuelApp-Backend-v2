@@ -62,28 +62,28 @@ app.get('/online', (res, req) => {
     });
 });
 
-app.get('/api/img/flowmeter/:name', async (res, req) => {
-    res.cork(() => {
-    const params = req.getParameter(0)
-    const imagePath = path.join(__dirname, '../../assets/flowmeter/',params); 
+// app.get('/api/img/flowmeter/:name', async (res, req) => {
+//     res.cork(() => {
+//     const params = req.getParameter(0)
+//     const imagePath = path.join(__dirname, '../../assets/flowmeter/',params); 
 
-    fs.readFile(imagePath, (err, data) => {
-        if (err) {
-            res.writeStatus('404 Not Found');
-            res.end('Image not found');
-            return;
-        }
+//     fs.readFile(imagePath, (err, data) => {
+//         if (err) {
+//             res.writeStatus('404 Not Found');
+//             res.end('Image not found');
+//             return;
+//         }
 
-        res.writeHeader('Access-Control-Allow-Origin', '*')
-        res.writeHeader('Content-Type', 'application/image');
-        res.end(data);
-    });
+//         res.writeHeader('Access-Control-Allow-Origin', '*')
+//         res.writeHeader('Content-Type', 'application/image');
+//         res.end(data);
+//     });
 
-})
-    res.onAborted(() => {
-        res.aborted = true;
-    });
-});
+// })
+//     res.onAborted(() => {
+//         res.aborted = true;
+//     });
+// });
 
 formLkfRoutes(app)
 formDataRoutes(app)
