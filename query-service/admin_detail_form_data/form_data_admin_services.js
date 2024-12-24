@@ -46,7 +46,7 @@ const getTableData = async (params) => {
         const formattedRows = data.rows.map((row) => ({
             ...row,
             entry_time: formatDateTimeToDDMMYYYY_HHMMSS(row.created_at), 
-            sync_time: formatDateTimeToDDMMYYYY_HHMMSS(row.sync_time), 
+            sync_time: formatDateTimeToDDMMYYYY_HHMMSS(row.created_at), 
         }));
         
         return formattedRows
