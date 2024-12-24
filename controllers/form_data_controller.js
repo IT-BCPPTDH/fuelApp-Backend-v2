@@ -5,6 +5,7 @@ const { updateFromData } = require("../query-service/form_data/update");
 const { getPrevious, getData, getPreviousMonth,getLastTransaction } = require("../query-service/form_data/getdata");
 const db = require('../database/helper');
 const { QUERY_STRING } = require("../helpers/queryEnumHelper");
+const { base64ToImageSign, base64ToImageFlow } = require("../helpers/base64toImage");
 
 async function operatorPostData(data) {
     try{
@@ -90,8 +91,24 @@ async function bulkInsert(bulkData){
         const existingData = await getAllByDate(uniqueDates)
         const arrData = []
         for (let index = 0; index < bulkData.length; index++) {
-            const element = bulkData[index];
+            let sign = null
+            let foto = null
+            let element = bulkData[index];
+
             const isExisting = existingData.data.some(item => item.from_data_id === element.from_data_id);
+            
+            if(element.signature){
+                sign = base64ToImageSign(element.signature)
+            }
+            if(element.photo){
+                foto = base64ToImageFlow(element.photo)
+            }
+
+            element = {
+                ...element,
+                signature:sign,
+                photo:foto
+            }
 
             if (!isExisting) {
               await insertToForm(element);

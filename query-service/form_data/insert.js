@@ -79,13 +79,15 @@ const insertToForm = async (dataJson) => {
     try {
         const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
-
+        // console.log(123,sanitizedColumns)
+        // console.log(234,valuesPlaceholders)
         const createOperatorQuery = `
           INSERT INTO form_data (${sanitizedColumns.join(', ')})
           VALUES (${valuesPlaceholders})
         `;
 
         const values = Object.keys(dataJson).map(key => dataJson[key]);
+        // console.log(333,values)
         const result = await db.query(createOperatorQuery, values);
 
         //jumlahkan dulu bila qty dari nomor yang sama
