@@ -161,6 +161,7 @@ function generateCustomFilename(filename) {
 const allowedFileTypes = ['jpeg', 'jpg', 'png', 'webp', 'xlsx'];
 
 function sendJsonResponse(res, result) {
+  console.log(result)
   res.cork(() => {
     res
       .writeStatus(String(result.status || 200))
@@ -222,24 +223,39 @@ async function handleUploadFile(res, req, action, token = false) {
           
           try {
             if (fileExtension === 'xlsx') {
-              const workbook = new ExcelJS.Workbook();
-              await workbook.xlsx.load(part.data); 
-              const sheet = workbook.getWorksheet(1); 
-            
-              sheet.eachRow((row, rowNumber) => {
-                if (rowNumber >= 5) {
-                  const rowData = row.values.slice(1, 11);
-                  const hasData = rowData.some(cell => cell !== undefined && cell !== null);
-                  if (hasData) {
-                    jsonData.push(rowData);
-                  }
-                }
-              });
+              try {
+                
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(part.data); 
+                const sheet = workbook.getWorksheet(1); 
 
-              const cellValueB1 = sheet.getCell('B1').value;
-              const cellValueG = sheet.getCell('G2').value;
-              headerData.push([cellValueB1, cellValueG]);
-              uploadedFiles.push(customFilename);
+                const expectedRow4 = [
+                  "Unit", "HM/KM", "Qty", "Driver", "IN", "OUT", 
+                  "Awal", "Akhir", "Shift", "Type"
+                ];
+
+                const row4 = sheet.getRow(4).values.slice(1, 11);
+                if (!row4.every((cell, index) => cell === expectedRow4[index])) {
+                  throw new Error("File yang diunggah tidak sesuai dengan template.");
+                }
+
+                sheet.eachRow((row, rowNumber) => {
+                  if (rowNumber >= 5) {
+                    const rowData = row.values.slice(1, 11);
+                    const hasData = rowData.some(cell => cell !== undefined && cell !== null);
+                    if (hasData) {
+                      jsonData.push(rowData);
+                    }
+                  }
+                });
+              
+                headerData.push([cellValueB1, cellValueG]);
+                uploadedFiles.push(customFilename);
+              
+              } catch (error) {
+                sendJsonResponse(res, {status: "500", error:error.message });
+                return;
+              }
             } else if (['jpeg', 'jpg', 'png', 'webp'].includes(fileExtension)) {
               const savedFilename = await optimizeAndSaveImage(part.data, sanitizedFilename, uploadDir);
               console.log(`Optimized image saved as: ${savedFilename}`);
