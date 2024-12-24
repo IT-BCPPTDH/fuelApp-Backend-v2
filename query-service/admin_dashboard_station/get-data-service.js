@@ -71,7 +71,7 @@ const getTableStation = async (params) => {
                 && itemB.jde_operator === itemA.fuelman_id);
 
             const formattedDate = formatDateToDDMMYYYY(itemA.date)
-            const formattedLogin = itemA.time_opening ?  formatDateTimeToDDMMYYYY_HHMMSS(itemA.time_opening) : ""
+            const formattedLogin = itemA.time_opening ?  formatDateTimeToDDMMYYYY_HHMMSS(itemA.time_opening) : formatDateTimeToDDMMYYYY_HHMMSS(matchingItemB.login_time)
             if (matchingItemB) {
               return {
                 ...itemA,
