@@ -44,27 +44,28 @@ async function bulkInsertQuotaDaily(bodyParams){
 }
 
 /** This block code for update data based on date  */
-
-cron.schedule('0 0 * * *', async () => {
-    // cron.schedule('*/30 * * * * *', async () => {
-  console.log("Loading for insert data at midnight...");
-
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const data = await bulkInsertQuotaDaily({tanggal: today});
-    console.log("Done insert data!");
-    return {
-        status:HTTP_STATUS.OK,
-        message: "Successfully inserted data:", data
-    }; pr
-  } catch (error) {
-    logger.error(err)
-    return {
-        status:HTTP_STATUS.BAD_REQUEST,
-        message: "Something wrong with this: ", error
-    }; 
-  }
-});
+const generateDaily = () => {
+    cron.schedule('0 0 * * *', async () => {
+        // cron.schedule('*/30 * * * * *', async () => {
+      console.log("Loading for insert data at midnight...");
+    
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const data = await bulkInsertQuotaDaily({tanggal: today});
+        console.log("Done insert data!");
+        return {
+            status:HTTP_STATUS.OK,
+            message: "Successfully inserted data:", data
+        }; pr
+      } catch (error) {
+        logger.error(err)
+        return {
+            status:HTTP_STATUS.BAD_REQUEST,
+            message: "Something wrong with this: ", error
+        }; 
+      }
+    });
+}
 
 async function getAllData(Json) {
     try{
@@ -280,5 +281,6 @@ module.exports = {
     getStatuBus,
     getStatusHLV,
     getStatusLV,
-    updateFromTab
+    updateFromTab,
+    generateDaily
 }

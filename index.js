@@ -5,7 +5,8 @@ const app = serverRoutes.App();
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-// process.env.TZ = 'Asia/Makassar';
+process.env.TZ = 'Asia/Makassar';
+console.log(new Date().toString()); 
 
 const port = process.env.PORT || 9111;
 
@@ -20,6 +21,8 @@ const adminRequestQuotaRoutes = require('./routes/admin_request_quota_routes')
 const quotaUsageRoutes = require('./routes/quota_usage_routes')
 const downloadRoutes = require('./routes/admin_download_routes')
 const getCloseStation = require('./routes/form_lkf')
+
+const { generateDaily } = require('./controllers/quota_usage_controller')
 
 // Cors Setup
 app.options('/*', (res, req) => {
@@ -62,28 +65,6 @@ app.get('/online', (res, req) => {
     });
 });
 
-// app.get('/api/img/flowmeter/:name', async (res, req) => {
-//     res.cork(() => {
-//     const params = req.getParameter(0)
-//     const imagePath = path.join(__dirname, '../../assets/flowmeter/',params); 
-
-//     fs.readFile(imagePath, (err, data) => {
-//         if (err) {
-//             res.writeStatus('404 Not Found');
-//             res.end('Image not found');
-//             return;
-//         }
-
-//         res.writeHeader('Access-Control-Allow-Origin', '*')
-//         res.writeHeader('Content-Type', 'application/image');
-//         res.end(data);
-//     });
-
-// })
-//     res.onAborted(() => {
-//         res.aborted = true;
-//     });
-// });
 
 formLkfRoutes(app)
 formDataRoutes(app)
@@ -96,6 +77,8 @@ homeRoutes(app)
 quotaUsageRoutes(app)
 downloadRoutes(app)
 getCloseStation(app)
+
+generateDaily()
 
 
 // Server Listener
