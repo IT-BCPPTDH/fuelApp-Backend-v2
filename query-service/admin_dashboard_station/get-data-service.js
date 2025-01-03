@@ -73,7 +73,12 @@ const getTableStation = async (params) => {
             const matchingItemB = loginData.rows.find(itemB => itemB.lkf_id === itemA.lkf_id);
 
             const formattedDate = formatDateToDDMMYYYY(itemA.date)
-            const formattedLogin = itemA.time_opening ?  formatDateTimeToDDMMYYYY_HHMMSS(itemA.time_opening) : formatDateTimeToDDMMYYYY_HHMMSS(matchingItemB.login_time)
+            const formattedLogin = itemA.time_opening 
+                                    ? formatDateTimeToDDMMYYYY_HHMMSS(itemA.time_opening) 
+                                    : (matchingItemB?.login_time 
+                                        ? formatDateTimeToDDMMYYYY_HHMMSS(matchingItemB.login_time) 
+                                        : 'N/A');
+
             if (matchingItemB) {
               return {
                 ...itemA,

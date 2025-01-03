@@ -2,7 +2,6 @@ const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 // const bulkData = require('../data-json/operator.json')
 const { insertToOperator, getTotal, updateActive, updateModel, updateTab} = require('../query-service/quota_usage/quota_usage_service')
-const cron = require('node-cron');
 const logger = require("../helpers/pinoLog");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
 const { getUnitLvProto } = require('../helpers/proto/master-data');
@@ -44,8 +43,8 @@ async function bulkInsertQuotaDaily(bodyParams){
 }
 
 /** This block code for update data based on date  */
-const generateDaily = () => {
-    cron.schedule('0 0 * * *', async () => {
+const generateDaily = async() => {
+    // cron.schedule('0 0 * * *', async () => {
         // cron.schedule('*/30 * * * * *', async () => {
       console.log("Loading for insert data at midnight...");
     
@@ -57,14 +56,14 @@ const generateDaily = () => {
             status:HTTP_STATUS.OK,
             message: "Successfully inserted data:", data
         }; pr
-      } catch (error) {
+      } catch (err) {
         logger.error(err)
         return {
             status:HTTP_STATUS.BAD_REQUEST,
-            message: "Something wrong with this: ", error
+            message: "Something wrong with this: ", err
         }; 
       }
-    });
+    // });
 }
 
 async function getAllData(Json) {
