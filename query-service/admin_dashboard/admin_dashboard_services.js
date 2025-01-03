@@ -187,7 +187,23 @@ const getTotalDashboard = async (params) => {
         const listDtoN = mergeNtoD(listData, listPrev)
         const mergeData = mergeArray(listData, listForm, difference, listDtoN)
         const total = calc(mergeData)
-        const data = { 
+        let data
+        if(Object.keys(total).length === 0){
+          data = { 
+            prevSonding : totalPrev ? totalPrev.toLocaleString('en-US') : 0,
+            openSonding : 0,
+            recipt: 0,
+            reciptKpc: 0,
+            issuedTrx: 0,
+            tfTrx: 0,
+            closeData: 0,
+            closeSonding: 0,
+            variant: 0,
+            intershiftNtoD: 0,
+            intershiftDtoN:0
+          }
+        }else{
+          data = { 
             prevSonding : totalPrev ? totalPrev.toLocaleString('en-US') : 0,
             openSonding : total.total_opening ? total.total_opening.toLocaleString('en-US') : 0,
             recipt: total.total_receive? total.total_receive.toLocaleString('en-US') : 0,
@@ -199,6 +215,7 @@ const getTotalDashboard = async (params) => {
             variant: total.total_variant ? total.total_variant.toLocaleString('en-US') : 0,
             intershiftNtoD: total.intershiftDtoN !== null ?  total.intershiftDtoN.toLocaleString('en-US') : 0,
             intershiftDtoN: total.intershiftNtoD ? total.intershiftNtoD.toLocaleString('en-US') : 0
+        }
         }
         return data
     } catch (error) {
