@@ -1,5 +1,5 @@
 //index.js
-
+const cron = require('node-cron');
 const serverRoutes = require('uWebSockets.js')
 const app = serverRoutes.App();
 require('dotenv').config();
@@ -78,7 +78,10 @@ quotaUsageRoutes(app)
 downloadRoutes(app)
 getCloseStation(app)
 
-generateDaily()
+// generateDaily()
+cron.schedule('0 0 * * *', async () => {
+    generateDaily()
+})
 
 
 // Server Listener
