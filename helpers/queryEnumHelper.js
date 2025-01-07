@@ -50,6 +50,7 @@ const QUERY_STRING = {
     update_log : `UPDATE fuelman_log SET logout_time = $1 WHERE lkf_id = $2 and "date" = $3`,
     getLogId: `select * from fuelman_log where jde_operator = $1 AND station = $2`,
 
+    insert_limited: `INSERT INTO quota_usage(date, unit_no, model, kategori, quota, used, additional) VALUES($1, $2, $3, $4, $5, 0, 0)`,
 
     getTotalLkfs: `select SUM(fl.closing_dip) as total_closing,
     SUM(fl.close_data) As total_close_data,
@@ -286,7 +287,8 @@ const QUERY_STRING = {
 
     getAllQuota : `Select * from quota_usage where "date" Between $1 and $2 and "isDelete" = 'false'`,
     getActiveQuota : `Select * from quota_usage where date = $1 and "isDelete" = 'false' and "is_active" = 'true'`,
-    getMaxQuota: `select max(quota) as limited_quota,max(is_active) as activated from quota_usage qu where "date" = $1 and kategori = $2`,
+    getMaxQuota: `select max(quota) as limited_quota,max(is_active) as activated from quota_usage qu where "date" = $1 
+    and (kategori = $2 or model like $3)`,
     getQuota : `Select * from quota_usage where "unit_no" = $1 and "is_active" = 'true' ORDER BY "date" desc LIMIT 1`,
 
     listStasion: `SELECT station from form_lkf where "date" between $1 and $2 group by station`,
