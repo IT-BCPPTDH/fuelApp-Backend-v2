@@ -1,5 +1,6 @@
 
 const QUERY_STRING = {
+    getQuotaByUnit : 'SELECT * from quota_usage where "date" = $1 and unit_no = $2',
     getLastLKF:`SELECT * 
     FROM form_lkf fl 
     WHERE station = $1 

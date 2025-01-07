@@ -46,10 +46,11 @@ async function bulkInsertQuotaDaily(bodyParams){
 const generateDaily = async() => {
     // cron.schedule('0 0 * * *', async () => {
         // cron.schedule('*/30 * * * * *', async () => {
-      console.log("Loading for insert data at midnight...");
+      console.log("Loading for insert data at midnight..."); 
     
       try {
         const today = new Date().toISOString().split('T')[0];
+        console.log(today)
         const data = await bulkInsertQuotaDaily({tanggal: today});
         console.log("Done insert data!");
         return {
@@ -275,13 +276,16 @@ async function updateFromTab(bodyParams) {
 
 async function insertData(Json) {
     try{
+        console.log(Json, Json.date)
         const date = formatYYYYMMDD(Json.date)
-        const data = {
-            tanggal : date,
-            option: 'Daily'
-        }
-        const checkData = await getTotal(data)
-        if(checkData.length !== 0){
+        // const data = {
+        //     tanggal : date,
+        //     option: 'Daily'
+        // }
+        const checkData = await db.query(QUERY_STRING.getQuotaByUnit, [date, Json.unit_no])
+        console.log(date)
+        console.log(checkData.rows)
+        if(checkData.rows.length !== 0){
             return {
                 status: HTTP_STATUS.BAD_REQUEST,
                 message: "Data has been inserted!"
