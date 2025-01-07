@@ -1,7 +1,7 @@
 const db = require('../database/helper');
 const { HTTP_STATUS, STATUS_MESSAGE } = require('../helpers/enumHelper')
 // const bulkData = require('../data-json/operator.json')
-const { insertToOperator, getTotal, updateActive, updateModel, updateTab} = require('../query-service/quota_usage/quota_usage_service')
+const { insertToOperator, getTotal, updateActive, updateModel, updateTab, insertOne} = require('../query-service/quota_usage/quota_usage_service')
 const logger = require("../helpers/pinoLog");
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
 const { getUnitLvProto } = require('../helpers/proto/master-data');
@@ -144,8 +144,9 @@ async function getActiveData(params) {
 async function getStatuBus(params) {
     try{
         const date = formatYYYYMMDD(params)
-        const kategori = 'Bus'
-        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori])
+        const kategori = 'GENERAL SUPPORT'
+        const model = '%BUS ELF%'
+        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori, model])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -171,8 +172,9 @@ async function getStatuBus(params) {
 async function getStatusHLV(params) {
     try{
         const date = formatYYYYMMDD(params)
-        const kategori = 'Triton'
-        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori])
+        const kategori = 'BUS'
+        const model = '%COLT%'
+        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori, model])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -198,8 +200,9 @@ async function getStatusHLV(params) {
 async function getStatusLV(params) {
     try{
         const date = formatYYYYMMDD(params)
-        const kategori = 'Colt'
-        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori])
+        const kategori = 'LIGHT VEHICLE'
+        const model = '%TRITON%'
+        let result = await db.query(QUERY_STRING.getMaxQuota, [date, kategori,model])
         if(result.rows !== 0){
             return {
                 status: HTTP_STATUS.OK,
@@ -246,7 +249,6 @@ async function editModel(bodyParams) {
     }
 }
 
-
 async function updateFromTab(bodyParams) {
     try{
         let result = await updateTab(bodyParams)
@@ -271,6 +273,43 @@ async function updateFromTab(bodyParams) {
     }
 }
 
+async function insertData(Json) {
+    try{
+        const date = formatYYYYMMDD(Json.date)
+        const data = {
+            tanggal : date,
+            option: 'Daily'
+        }
+        const checkData = await getTotal(data)
+        if(checkData.length !== 0){
+            return {
+                status: HTTP_STATUS.BAD_REQUEST,
+                message: "Data has been inserted!"
+            }
+        }
+        let result = await insertOne(Json)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Data succesfully created!',
+                data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data not found!',
+            };
+        }
+    } catch(err) {
+        console.log(err)
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+          };
+    }
+}
+
 module.exports = {
     getAllData,
     bulkInsertQuotaDaily,
@@ -281,5 +320,6 @@ module.exports = {
     getStatusHLV,
     getStatusLV,
     updateFromTab,
-    generateDaily
+    generateDaily,
+    insertData
 }
