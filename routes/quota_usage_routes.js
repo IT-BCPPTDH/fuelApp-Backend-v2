@@ -12,4 +12,5 @@ module.exports = (app) => {
     app.put('/api/quota-usage/update-data',(req,res) => quotaHandler.handleUpdateActive(req,res));
     app.put('/api/quota-usage/edit-model',(req,res) => quotaHandler.handleEditModel(req,res));
     app.put('/api/quota-usage/update-from-tab',(req,res) => quotaHandler.handleUPdateFromTab(req,res));
+    app.post('/api/quota-usage/insert',(req,res) => quotaHandler.handlePostData(req,res));
 }

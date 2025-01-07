@@ -89,25 +89,27 @@ const updateActive = async (params) => {
 
 const updateModel = async(updateFields) => {
     const setClauses = Object.keys(updateFields)
-        .filter(field => field !== 'tanggal' && field !== 'kategori') 
+        .filter(field => field !== 'tanggal' && field !== 'kategori' && field !== 'model') // Exclude 'model'
         .map((field, index) => `${field} = $${index + 1}`)
         .join(', ');
 
     const values = Object.keys(updateFields)
-        .filter(field => field !== 'tanggal' && field !== 'kategori')
+        .filter(field => field !== 'tanggal' && field !== 'kategori' && field !== 'model') 
         .map(field => updateFields[field]);
 
     let date = formatYYYYMMDD(updateFields.tanggal);
     const opt = 'Daily'
     const dateBefore = formatDateOption(opt, date)
-    let model = updateFields.kategori;
-    values.push(date, model); 
+    let kategori = updateFields.kategori;
+    let model = updateFields.model; 
+    values.push(date, kategori, `%${model}%`);
 
     try{
-        const query = `UPDATE quota_usage SET ${setClauses} WHERE "date" = $${values.length - 1} AND kategori = $${values.length}`;
+        const query = `UPDATE quota_usage SET ${setClauses} 
+        WHERE "date" = $${values.length - 2} AND (kategori = $${values.length - 1} OR model LIKE $${values.length});`;
+
         const result = await db.query(query, values)
         if(result){
-            // const getActivedModal = await db.query(QUERY_STRING.getMaxQuota, [date, model])
             const getAlldata = await db.query(QUERY_STRING.getAllQuota, [dateBefore, date])
 
             const formattedResult = getAlldata.rows.map((item, index) => ({
@@ -139,10 +141,28 @@ const updateTab = async (params) => {
     return true
 }
 
+const insertOne = async (params) => {
+    try{
+        let { date, unit_no, model, kategori, quota } = params;
+        const param = [ date, unit_no, model, kategori, quota ];
+        const result = await db.query(QUERY_STRING.insert_limited, param);
+        if(result){
+            return true
+        }else{
+            return false
+        }
+    }catch(error){
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+}
+
 module.exports = {
     insertToOperator,
     getTotal,
     updateActive,
     updateModel,
-    updateTab
+    updateTab,
+    insertOne
 }

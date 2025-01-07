@@ -42,7 +42,6 @@ const { formatYYYYMMDD } = require('../../helpers/dateHelper');
 
 
 const postFormData = async (data) => {
-    console.log(data)
     try {
         const dt = new Date();
         let sign, pic, sync
