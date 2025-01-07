@@ -1,6 +1,6 @@
 const { getAllData, bulkInsertQuotaDaily, updateData, getActiveData, 
      getStatuBus, getStatusLV, getStatusHLV, editModel, 
-     updateFromTab} = require("../controllers/quota_usage_controller");
+     updateFromTab, insertData} = require("../controllers/quota_usage_controller");
 const { handleResponseJsonOperator, handleResponseParams, checkToken } = require("./httpResponseHandler");
 
 async function handleGetData(res, req) {
@@ -38,6 +38,10 @@ async function handleActivatedLv(res, req) {
 async function handleUPdateFromTab(res, req) {
     await handleResponseJsonOperator(res, req, updateFromTab, true)
 }
+
+async function handlePostData(res, req) {
+    await handleResponseJsonOperator(res, req, insertData, true )
+}
 // 
 module.exports = {
     handleGetData,
@@ -48,5 +52,6 @@ module.exports = {
     handleActivatedBus,
     handleActivatedHlv,
     handleActivatedLv,
-    handleUPdateFromTab
+    handleUPdateFromTab,
+    handlePostData
 }
