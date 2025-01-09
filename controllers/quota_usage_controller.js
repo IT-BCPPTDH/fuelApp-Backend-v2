@@ -49,7 +49,7 @@ const generateDaily = async() => {
       console.log("Loading for insert data at midnight..."); 
     
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
         console.log(today)
         const data = await bulkInsertQuotaDaily({tanggal: today});
         console.log("Done insert data!");
@@ -276,7 +276,6 @@ async function updateFromTab(bodyParams) {
 
 async function insertData(Json) {
     try{
-        console.log(Json, Json.date)
         const date = formatYYYYMMDD(Json.date)
         // const data = {
         //     tanggal : date,
