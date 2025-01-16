@@ -43,6 +43,7 @@ const { formatYYYYMMDD } = require('../../helpers/dateHelper');
 
 const postFormData = async (data) => {
     try {
+        console.log(data)
         const dt = new Date();
         let sign, pic, sync
         
@@ -173,7 +174,8 @@ const editForm = async (updateFields) => {
                 let total 
                 const existingData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.no_unit,updateFields.date_trx])
                 if(existingData.rows.length > 0){
-                    total = existingData.rows[0].used + existingData.rows[0].additional - parseFloat(updateFields.qty) 
+                    // total = existingData.rows[0].used + existingData.rows[0].additional - parseFloat(updateFields.qty)
+                    total = parseFloat(updateFields.qty)
                 }
                 const params = [total, updateFields.no_unit, formatYYYYMMDD(updateFields.date_trx)];
                 const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
