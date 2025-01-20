@@ -50,7 +50,6 @@ const generateDaily = async() => {
     
       try {
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
-        console.log(today)
         const data = await bulkInsertQuotaDaily({tanggal: today});
         console.log("Done insert data!");
         return {

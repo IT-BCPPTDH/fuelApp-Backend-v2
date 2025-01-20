@@ -399,7 +399,9 @@ const QUERY_STRING = {
       AND fuelman_log.station = form_lkf.station
       AND form_lkf.lkf_id = $1;
      COMMIT;
-     `
+     `,
+
+    getExistData: `select * from form_data fd where id = $1 and fd.date_trx = $2`,
 }
 
 module.exports = {
