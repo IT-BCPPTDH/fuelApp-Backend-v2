@@ -68,6 +68,7 @@ const postFormData = async (data) => {
                 if (qty > existingData.rows[0].quota) {
                     return 'This unit has exceeded its quota limit!';
                 }
+                console.log(qty)
             }
             const updateValues = [qty, data.no_unit, date];
             await db.query(updateQuery, updateValues);

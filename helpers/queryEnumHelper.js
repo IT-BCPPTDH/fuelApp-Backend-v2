@@ -327,13 +327,13 @@ const QUERY_STRING = {
     join form_data fd on fd.lkf_id = fl.lkf_id 
     where fl."date" between $1 and $2 and fd."type" ='Issued'`, 
      
-    getDataForMailKPC : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
-    join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl."date" between $1 and $2 and fd.type = 'Receipt KPC'`,
+    getDataForMailKPC : `select fl."date",fd.no_unit, fd.qty from form_data fd
+    left join form_lkf fl on fl.lkf_id = fd.lkf_id 
+    where fl."date" = $1 and fd.type = 'Receipt KPC'`,
 
-    getDataForMailIssued : `select fl."date", fl.station, fd.no_unit, fd.qty, fd."type" from form_lkf fl 
-    join form_data fd on fd.lkf_id = fl.lkf_id 
-    where fl."date" between $1 and $2 and fd.type = 'Issued'`,
+    getDataForMailIssued : `select fd.no_unit, fd.qty from form_data fd
+    left join form_lkf fl on fl.lkf_id = fd.lkf_id 
+    where fl."date" = $1 and fd.type = 'Issued'`,
 
     getHeaderLkf: `select fl.fuelman_id, fl.opening_dip, opening_sonding,
     fl.closing_dip as total_close, closing_sonding,
