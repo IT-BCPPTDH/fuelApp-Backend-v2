@@ -5,6 +5,7 @@ const { getEquipment, getFilterBanlaws, getMdElipse } = require('../../helpers/p
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const fs = require('fs');
 
 const getData = async(dateFrom, dateTo) => {
     try{
@@ -292,173 +293,59 @@ const getFCByOwner = async(dateFrom, dateTo) => {
     }
 }
 
-const getContentyMail = async(dateFrom, dateTo) => {
+const getContentyMail = async(date) => {
     try{
-        const fetchDataKPC = await db.query(QUERY_STRING.getDataForMailKPC, [dateFrom, dateTo])
-        const fetchDataIssued = await db.query(QUERY_STRING.getDataForMailIssued, [dateFrom, dateTo])
-        const UnitsNosKPC = [...new Set(fetchDataKPC.rows.map(item => item.no_unit))];
-        const UnitsNos = [...new Set(fetchDataIssued.rows.map(item => item.no_unit))];
-        const fetchKPC = await getMdElipse(UnitsNosKPC)
-        const unitKPC = JSON.parse(fetchKPC.data)
-        const fetchIssued = await getMdElipse(UnitsNos)
-        const unitIssued = JSON.parse(fetchIssued.data)
-
-        const mergedDataKPC = fetchDataKPC.rows.map(item => {
-            const matchingData = unitKPC.find(data => data.equip_no_unit === item.no_unit);
-            return {
-                ...item,
-                owner: matchingData ? matchingData.equip_owner_elipse : 'PT. Darma Henwa Tbk'
-            };
-        });
-
-        const mergedDataIssued = fetchDataIssued.rows.map(item => {
-            const matchingData = unitIssued.find(data => data.equip_no_unit === item.no_unit);
-            return {
-                ...item,
-                category: matchingData ? (matchingData.equip_category ? matchingData.equip_category : 'OTHERS') : 'OTHERS'
-            };
-        });
-
-        const rets = sumFunction(mergedDataKPC)
-        console.log(rets)
-
-        // const dataKpc = {...restTotal, ...totals}
-         
-        // console.log(totals)
-        // console.log(dataKpc)
-        // const data = {
-        //     dataKpc: dataKpc,
-        //     dataIssued: dataIssued
-        // }
-        return true
-    }catch(error){
-        logger.error(error)
-        console.error('Error during update:', error);
-        return false;
-    }
-}
-
-const bodyMail = async(dateStart, dateEnd) => {
-    try{
-        const content = await getContentyMail(dateStart, dateEnd)
-        console.log(content)
-        const yesterday = '2024-10-27';
-        const supplier_name = 'ABC Supplier';
-        const receipt = [
-          { category: 'Category A', total: 100 },
-          { category: 'Category B', total: 200 },
-        ];
-        const total = [
-          { category: 'Category X', total: 150 },
-          { category: 'Category Y', total: 250 },
-        ];
-        const totaldh = [{ total: 400 }];
-
-        // Function to format numbers
-        // const numberFormat = (number) => {
-        //   return new Intl.NumberFormat().format(number);
-        // };
-
-        // // Calculate totals
-        // let rc = receipt.reduce((acc, curr) => acc + curr.total, 0);
-        // let ttl = total.reduce((acc, curr) => acc + curr.total, 0);
-        // const transporter = nodemailer.createTransport({
-        //     host: process.env.MAIL_HOST,
-        //     port: 25,
-        //     secure: false, 
-        //     auth: {
-        //         user: process.env.MAIL_USER, 
-        //         pass: process.env.MAIL_PASSWORD,
-        //     },
-        //     tls:{
-        //         rejectUnauthorized:false
-        //     }
-        // });
-        // const fileName = 'Fuel-Consumption-06-Oct-2024.xlsx'
-        // // const currentModulePath = dirname(fileURLToPath(import.meta.url));
-        // let mailOptions = {
-        //     from: process.env.MAIL_EMAIL,
-        //     to: 'kazehayareo@gmail.com',
-        //     cc: 'annisa@think-match.com',
-        //     subject: 'Fuelapp Auto Report - Fuel Consumption 16-Oct-2024',
-        //     html : `
-        //     <!DOCTYPE html>
-        //     <html lang="en" dir="ltr">
-        //       <head>
-        //         <meta charset="utf-8">
-        //         <title></title>
-        //       </head>
-        //       <body>
-        //         <p>Dear All,</p>
-        //         <br>
-        //         <br>
-        //         <p id="showlkf" style="margin-top:20px; margin-bottom:100px">Terlampir, Fuel Consumption ${yesterday}</p>
-        //         <table>
-        //           <tbody>
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>RECEIPT ${supplier_name}</b></td>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Date ${yesterday}</b></td>
-        //             </tr>
-        //             ${receipt.map(r => `
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>${r.category}</b></td>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#ffffff;color:#0b0f8a;font-size:10pt;text-align:right"><b>${numberFormat(r.total)}</b></td>
-        //             </tr>
-        //             `).join('')}
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Grand Total</b></td>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:right"><b>${numberFormat(rc)}</b></td>
-        //             </tr>
-        //           </tbody>
-        //         </table>
-        //         <br><br>
-        //         <table>
-        //           <tbody>
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>ISSUE BY CATEGORY</b></td>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:center"><b>Total</b></td>
-        //             </tr>
-        //             ${total.map(tot => `
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>${tot.category}</b></td>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#ffffff;color:#0b0f8a;font-size:10pt;text-align:right"><b>${numberFormat(tot.total)}</b></td>
-        //             </tr>
-        //             `).join('')}
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Total DH</b></td>
-        //               ${totaldh.map(dh => `
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:right"><b>${numberFormat(dh.total)}</b></td>
-        //               `).join('')}
-        //             </tr>
-        //             <tr>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt"><b>Grand Total</b></td>
-        //               <td style="border: 1px solid #000; width:150px;background-color:#0b0f8a;color:#ffffff;font-size:10pt;text-align:right"><b>${numberFormat(ttl)}</b></td>
-        //             </tr>
-        //           </tbody>
-        //         </table>
-        //       </body>
-        //     </html>
-        //     `,
-        //     attachments: [
-        //         {
-        //           filename: fileName,
-        //           path: path.join(__dirname, '../../download/', fileName), 
-        //           contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        //         },
-        //     ],
-        // };
-
-        // console.log(process.env.DOWNLOAD_PATH)
+        const fetchDataKPC = await db.query(QUERY_STRING.getDataForMailKPC, [date])
+        const fetchDataIssued = await db.query(QUERY_STRING.getDataForMailIssued, [date])
+        if(fetchDataKPC.rowCount == 0 && fetchDataIssued.rowCount == 0){
+            return []
+        }else{
+            const UnitsNosKPC = fetchDataKPC.rows.map(item => item.no_unit);
+            const UnitsNos = fetchDataIssued.rows.map(item => item.no_unit);
+            const fetchKPC = await getMdElipse(UnitsNosKPC)
+            const unitKPC = JSON.parse(fetchKPC.data)
+            const fetchIssued = await getMdElipse(UnitsNos)
+            const unitIssued = JSON.parse(fetchIssued.data)
     
-        // // Kirim email
-        // transporter.sendMail(mailOptions, (error, info) => {
-        //     if (error) {
-        //         console.log('Error saat mengirim email:', error);
-        //     } else {
-        //         console.log('Email terkirim: ' + info.response);
-        //     }
-        // });   
-        return true 
+            const mergedDataKPC = fetchDataKPC.rows.map(item => {
+                const matchingData = unitKPC.find(data => data.equip_no_unit === item.no_unit);
+                return {
+                    ...item,
+                    owner: matchingData ? matchingData.equip_owner_elipse : 'PT. Darma Henwa Tbk'
+                };
+            });
+    
+            const mergedDataIssued = fetchDataIssued.rows.map(item => {
+                const matchingData = unitIssued.find(data => data.equip_no_unit === item.no_unit);
+                return {
+                    unit_no: item.no_unit,
+                    category: matchingData ? (matchingData.equip_category ? matchingData.equip_category : 'OTHERS') : 'OTHERS',
+                    qty: item.qty
+                };
+            });
+    
+            const excludesDesc = ['COAL HAULING', 'KPC', 'PT. Madhani Talata Nusantara']
+            const mergedDH = unitIssued
+            .map(item => {
+                const matchData = fetchDataIssued.rows.find(data => data.no_unit === item.equip_no_unit);
+                return {
+                    desc: item.equip_description,
+                    qty: matchData ? matchData.qty : 0 
+                };
+            })
+            .filter(item => !excludesDesc.includes(item.desc));
+        
+            const totalReceipt = sumFunction(mergedDataKPC)
+            const totalIssued = sumCategory(mergedDataIssued)
+            const totalQty = mergedDH.reduce((sum, item) => sum + item.qty, 0);
+            
+            const data = [{
+                dataKpc: totalReceipt,
+                dataIssued: totalIssued,
+                dataTotal: totalQty
+            }]
+            return data
+        }
     }catch(error){
         logger.error(error)
         console.error('Error during update:', error);
@@ -466,6 +353,117 @@ const bodyMail = async(dateStart, dateEnd) => {
     }
 }
 
+const numberFormat = (num) => {
+    return new Intl.NumberFormat('en-US').format(num);
+};
+
+
+const bodyMail = async(yesterday) => {
+    try{
+        const content = await getContentyMail(yesterday)
+        if(content.length !== 0){
+            const transporter = nodemailer.createTransport({
+                host: process.env.MAIL_HOST,
+                port: 25,
+                secure: false, 
+                auth: {
+                    user: process.env.MAIL_USER, 
+                    pass: process.env.MAIL_PASSWORD,
+                },
+                tls:{
+                    rejectUnauthorized:false
+                }
+            });
+            const fileName = `Fuel-Consumption-${formatedDatesNames(yesterday)}.xlsx`
+            const filePath = path.join(__dirname, '../../download/', fileName);
+            let mailOptions = {
+                from: process.env.MAIL_EMAIL,
+                to: 'kazehayareo@gmail.com',
+                cc: 'annisa@think-match.com',
+                subject: `Fuelapp Auto Report - Fuel Consumption ${formatDDMonthYYYY(yesterday)}`,
+                html : `
+                <!DOCTYPE html>
+                <html lang="en" dir="ltr">
+                <head>
+                    <meta charset="utf-8">
+                    <title>Fuel Consumption Report</title>
+                </head>
+                <body>
+                    <p>Dear All,</p>
+                    <br>
+                    <p id="showlkf" style="margin-top:20px; margin-bottom:100px">Terlampir, Fuel Consumption ${formatDDMonthYYYY(yesterday)}</p>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt"><b>RECEIPT</b></td>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt"><b>Total</b></td>
+                            </tr>
+                            ${Object.entries(content[0].dataKpc).map(([key, value]) => `
+                        <tr>
+                            <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt">
+                                <b>${key === "totalKpc" ? "GRAND TOTAL" : key}</b>
+                            </td>
+                            <td style="border: 1px solid #000; width:150px; background-color:#ffffff; color:#0b0f8a; font-size:10pt; text-align:right">
+                                <b>${numberFormat(value)}</b>
+                            </td>
+                        </tr>
+                    `).join('')}
+                        </tbody>
+                    </table>
+                    <br><br>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt"><b>ISSUE BY CATEGORY</b></td>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt; text-align:center"><b>Total</b></td>
+                            </tr>
+                            ${Object.entries(content[0].dataIssued)
+                                .filter(([key]) => key !== "totalIssued") 
+                                .map(([key, value]) => `
+                                    <tr>
+                                        <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt"><b>${key}</b></td>
+                                        <td style="border: 1px solid #000; width:150px; background-color:#ffffff; color:#0b0f8a; font-size:10pt; text-align:right"><b>${numberFormat(value)}</b></td>
+                                    </tr>
+                                `).join('')}
+                            <tr>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt"><b>Total DH</b></td>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt; text-align:right"><b>${numberFormat(content[0].dataTotal)}</b></td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt"><b>Grand Total</b></td>
+                                <td style="border: 1px solid #000; width:150px; background-color:#0b0f8a; color:#ffffff; font-size:10pt; text-align:right"><b>${numberFormat(content[0].dataIssued.totalIssued)}</b></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br><br>
+                </body>
+                </html>
+                `,
+                attachments: [
+                    {
+                      filename: fileName,
+                      path: filePath, 
+                      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    },
+                ],
+            };
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.log('Error saat mengirim email:', error);
+                } else {
+                    console.log('Email terkirim: ' + info.response);
+                }
+            });   
+            return true 
+        }else{
+            return false
+        }
+    }catch(error){
+        logger.error(error)
+        console.error('Error during update:', error);
+        return false;
+    }
+}
 
 const sumFunction = (data) => {
     const totals = data.reduce((acc, curr) => {
@@ -476,10 +474,32 @@ const sumFunction = (data) => {
         return acc;
     }, {});
 
+    const sortedTotals = Object.fromEntries(
+        Object.entries(totals).sort((a, b) => b[0].localeCompare(a[0]))
+    );
+
     const grandTotal = Object.values(totals).reduce((acc, curr) => acc + curr, 0);
     const datas = {
-        total : totals,
-        jml: grandTotal
+        ...sortedTotals,
+        totalKpc: grandTotal
+    }
+
+    return datas
+}
+
+const sumCategory = (data) => {
+    const totals = data.reduce((acc, curr) => {
+        if (!acc[curr.category]) {
+            acc[curr.category] = 0;
+        }
+        acc[curr.category] += curr.qty;
+        return acc;
+    }, {});
+
+    const grandTotal = Object.values(totals).reduce((acc, curr) => acc + curr, 0);
+    const datas = {
+        ...totals,
+        totalIssued: grandTotal
     }
 
     return datas

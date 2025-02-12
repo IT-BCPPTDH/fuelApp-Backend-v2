@@ -44,8 +44,6 @@ async function bulkInsertQuotaDaily(bodyParams){
 
 /** This block code for update data based on date  */
 const generateDaily = async() => {
-    // cron.schedule('0 0 * * *', async () => {
-        // cron.schedule('*/30 * * * * *', async () => {
       console.log("Loading for insert data at midnight..."); 
     
       try {
