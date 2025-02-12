@@ -6,7 +6,7 @@ const fs = require('fs');
 const cron = require('node-cron');
 const { QUERY_STRING } = require('../helpers/queryEnumHelper');
 const { formatYYYYMMDD, formatedDatesYYYYMMDD, formattedHHMM, formatedMonth, 
-    getFirstDate, formatedDatesNames,formatDateMMYYYY } = require('../helpers/dateHelper')
+    getFirstDate, formatedDatesNames,formatDateMMYYYY, formatDDMonthYYYY } = require('../helpers/dateHelper')
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { getTableDashboard } = require('../query-service/admin_dashboard/admin_dashboard_services');
 const { getData, getFCShift, getFCHmkm,getKPC, 
@@ -1558,72 +1558,72 @@ const generateFCShift = (title, headersOne, headersTwo, headersThree, rest, file
 
     const uniqueDates = [...new Set(rest.dataConsumtion.map(item => item.dates))];
 
-    uniqueDates.forEach((date, index) => {
-        const cell = sheet.getCell(4, index * 2 + 7); 
-        cell.value = date;
-        cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: '050580' }, 
-        };
-        cell.font = { 
-            bold: true,
-            color: { argb: 'ffffff' },
-            size: 11
-        };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        // cell.width = 15;
+    function getExcelColumnName(index) {
+        let columnName = "";
+        while (index >= 0) {
+            columnName = String.fromCharCode((index % 26) + 65) + columnName;
+            index = Math.floor(index / 26) - 1;
+        }
+        return columnName;
+    }
     
-        const startCol = String.fromCharCode(71 + index * 2); 
-        const endCol = String.fromCharCode(72 + index * 2); 
-        sheet.mergeCells(`${startCol}4:${endCol}4`); 
+    uniqueDates.forEach((date, index) => {
+        const startCol = getExcelColumnName(6 + index * 2); 
+        const endCol = getExcelColumnName(7 + index * 2);  
+    
+        sheet.mergeCells(`${startCol}4:${endCol}4`);
         const mergedCell = sheet.getCell(`${startCol}4`);
         mergedCell.value = date;
         mergedCell.fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: '050580' } 
+            fgColor: { argb: '050580' }
         };
-
-        sheet.mergeCells(`${startCol}5:${endCol}5`); 
-        const mergedCellFive = sheet.getCell(`${startCol}5`); 
+        mergedCell.font = {
+            bold: true,
+            color: { argb: 'ffffff' },
+            size: 11
+        };
+        mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    
+        sheet.mergeCells(`${startCol}5:${endCol}5`);
+        const mergedCellFive = sheet.getCell(`${startCol}5`);
         mergedCellFive.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'FFFFA500' } 
         };
-        mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
     
-        
-        const dayCell = sheet.getCell(`${startCol}6`); 
+        const dayCell = sheet.getCell(`${startCol}6`);
         dayCell.value = 'D';
         dayCell.alignment = { horizontal: 'left', vertical: 'middle' };
         dayCell.font = {
             bold: true,
-            size :11,
-            color: {argb:'ffffff'}
-        }
+            size: 11,
+            color: { argb: 'ffffff' }
+        };
         dayCell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: '050580' } 
         };
     
-        const nightCell = sheet.getCell(`${endCol}6`); 
+        // Pengaturan untuk kolom Night ("N")
+        const nightCell = sheet.getCell(`${endCol}6`);
         nightCell.value = 'N';
         nightCell.alignment = { horizontal: 'left', vertical: 'middle' };
         nightCell.font = {
             bold: true,
-            size : 11,
-            color: {argb:'ffffff'}
-        }
+            size: 11,
+            color: { argb: 'ffffff' }
+        };
         nightCell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: '050580' } 
         };
     });
-
+    
     rest.dataUnit.forEach((item, rowIndex) => {
         const row = sheet.getRow(rowIndex + 7);
         row.getCell(1).value = item.desc;
@@ -1658,26 +1658,24 @@ const generateFCShift = (title, headersOne, headersTwo, headersThree, rest, file
     });
     
     rest.dataConsumtion.forEach((data) => {
-        const dateIndex = uniqueDates.indexOf(data.dates) * 2 + 7; // Indeks kolom untuk tanggal
-        const row = rest.dataUnit.findIndex(item => item.unit_no === data.no_unit) + 7; // Indeks baris berdasarkan no_unit
+        const dateIndex = uniqueDates.indexOf(data.dates) * 2 + 7; 
+        const row = rest.dataUnit.findIndex(item => item.unit_no === data.no_unit) + 7; 
     
         if (row >= 7) {
-            const shiftOffset = data.shift === 'Day' ? 0 : 1; // Offset untuk shift
-            const cell = sheet.getRow(row).getCell(dateIndex + shiftOffset); // Menentukan sel berdasarkan shift
+            const shiftOffset = data.shift === 'Day' ? 0 : 1; 
+            const cell = sheet.getRow(row).getCell(dateIndex + shiftOffset);
     
-            // Cek apakah sudah ada nilai di sel tersebut
             if (!cell.value) {
-                cell.value = data.total_qty; // Set nilai jika sel kosong
+                cell.value = data.total_qty; 
             } else {
-                cell.value += data.total_qty; // Jika sudah ada, tambahkan nilainya
+                cell.value += data.total_qty;
             }
     
-            // Set style untuk qty
             cell.font = {
                 size: 8
             };
-            sheet.getColumn(dateIndex).width = 8; // Lebar kolom untuk D
-            sheet.getColumn(dateIndex + 1).width = 8; // Lebar kolom untuk N
+            sheet.getColumn(dateIndex).width = 8; 
+            sheet.getColumn(dateIndex + 1).width = 8; 
         }
     });
     
@@ -1871,7 +1869,7 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
     const uniqueDates = [...new Set(rest.dataConsumtion.map(item => item.dates))];
 
     function getExcelColumnName(index) {
-        let columnName = '';
+        let columnName = "";
         while (index >= 0) {
             columnName = String.fromCharCode((index % 26) + 65) + columnName;
             index = Math.floor(index / 26) - 1;
@@ -1882,7 +1880,6 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
     uniqueDates.forEach((date, index) => {
         const startCol = getExcelColumnName(6 + index * 4);
         const endCol = getExcelColumnName(9 + index * 4); 
-        // console.log(startCol, endCol)
         sheet.mergeCells(`${startCol}4:${endCol}4`);
         const cell = sheet.getCell(`${startCol}4`);
         cell.value = date;
@@ -1924,65 +1921,27 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
             size: 11
         };
         nightShiftCell.alignment = { horizontal: 'left', vertical: 'middle' };
-
-        // console.log(`${getExcelColumnName(6 + index * 2 )}6`)
-        // console.log(index)
-
-        // // Mengatur header Qty dan HM pada baris 6
-        const qtyCol = sheet.getCell(`${startCol}6`);
-        qtyCol.value = 'Qty';
-        qtyCol.alignment = { horizontal: 'center', vertical: 'middle' };
-        qtyCol.font = {
-            size: 11,
-            color: { argb: 'ffffff' }
-        };
-        qtyCol.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: '050580' }
-        };
-
-        const hmCol = sheet.getCell(`${String.fromCharCode(startCol.charCodeAt(0) + 1)}6`);
-        hmCol.value = 'HM';
-        hmCol.alignment = { horizontal: 'center', vertical: 'middle' };
-        hmCol.font = {
-            size: 11,
-            color: { argb: 'ffffff' }
-        };
-        hmCol.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: '050580' }
-        };
-
-        const qtyNightCol = sheet.getCell(`${String.fromCharCode(startCol.charCodeAt(0) + 2)}6`);
-        qtyNightCol.value = 'Qty';
-        qtyNightCol.alignment = { horizontal: 'center', vertical: 'middle' };
-        qtyNightCol.font = {
-            size: 11,
-            color: { argb: '050580' }
-        };
-        qtyNightCol.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: '050580' }
-        };
-
-        const hmNightCol = sheet.getCell(`${String.fromCharCode(startCol.charCodeAt(0) + 3)}6`);
-        hmNightCol.value = 'HM';
-        hmNightCol.alignment = { horizontal: 'center', vertical: 'middle' };
-        hmNightCol.font = {
-            size: 11,
-            color: { argb: 'ffffff' }
-        };
-        hmNightCol.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: '050580' }
-        };
     });
 
-    // Mengisi data unit pada baris berikutnya, dimulai dari baris 7
+    const totalColumns = Math.max(uniqueDates.length * 2); 
+    for (let colIndex = 6; colIndex < 6 + totalColumns * 2 ; colIndex += 2) {
+        const qtyCol = getExcelColumnName(colIndex);
+        const hmCol = getExcelColumnName(colIndex + 1);
+
+        const qtyCell = sheet.getCell(`${qtyCol}6`);
+        qtyCell.value = 'Qty';
+        qtyCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        qtyCell.font = { size: 11, color: { argb: 'ffffff' } };
+        qtyCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '050580' } };
+
+        const hmCell = sheet.getCell(`${hmCol}6`);
+        hmCell.value = 'HM';
+        hmCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        hmCell.font = { size: 11, color: { argb: 'ffffff' } };
+        hmCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '050580' } };
+
+    }
+
     rest.dataUnit.forEach((item, rowIndex) => {
         const row = sheet.getRow(rowIndex + 7);
         row.getCell(1).value = item.desc;
@@ -2016,7 +1975,6 @@ const generateFChmkm = (title, headersOne, headersTwo, headersThree, rest, fileN
         }
     });
 
-    // Mengisi data Qty dan HM dengan nilai default 0 jika tidak ada data
     rest.dataUnit.forEach((unit, rowIndex) => {
         const row = rowIndex + 7; 
         uniqueDates.forEach((date, dateIndex) => {
@@ -2431,7 +2389,6 @@ const renderTable = (title, data, totalQty, sheet, startRow) => {
     return {totalRow: rows}
 }
 
-
 const generateByOwner = ( data, fileName) => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Sheet1");
@@ -2496,20 +2453,33 @@ const generateByOwner = ( data, fileName) => {
     });
 }
 
-const sentMail = async(data) => {
+const sentMail = async() => {
     try{
-        // const dateTill = formatYYYYMMDD(data)
-        // const dateFrom = getFirstDate(dateTill)
+        const today = new Date();
+        today.setDate(today.getDate() - 1); 
 
-        const dateFrom = '2024-10-03'
-        const dateTill = '2024-10-03'
-        // const res = DailyConsumtion()
-        // const result = await sentMail(dateFrom, dateTill)
-        const result = await bodyMail(dateFrom,dateTill)
-        console.log(result)
-        return {
-            status: HTTP_STATUS.OK,
-            // link: result
+        const yesterday = today.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
+        const fileName = `Fuel-Consumption-${formatedDatesNames(yesterday)}.xlsx`
+        const filePath = path.join(__dirname, '../../download/', fileName);
+        if (!fs.existsSync(filePath)) {
+            console.log(`File ${fileName} tidak ditemukan, membuat file baru...`);
+            const data = {
+                untilDate: yesterday,
+                option: "Consumtion"
+            }
+            await DailyConsumtion(data); 
+        }
+        const result = await bodyMail(yesterday)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: "Success"
+            }
+        }else{
+            return {
+                status: HTTP_STATUS.BAD_REQUEST,
+                message: `Failed send Email!`,
+            };
         }
     }catch(error){
         logger.error(error)
@@ -2519,29 +2489,6 @@ const sentMail = async(data) => {
         };
     }
 }
-
-// cron.schedule('0 8 * * *', async () => {
-// cron.schedule('*/10 * * * * *', async () => {
-//   console.log("Sending auto report...");
-
-//   try {
-//     const today = new Date();
-//     today.setDate(today.getDate() - 1);
-//     const yesterday = today.toISOString().split('T')[0];
-//     const data = await sentMail(yesterday);
-//     console.log("Done sending mail!");
-//     return {
-//         status:HTTP_STATUS.OK,
-//         message: "Successfully sending mail!"
-//     }; 
-//   } catch (error) {
-//     logger.error(err)
-//     return {
-//         status:HTTP_STATUS.BAD_REQUEST,
-//         message: "Something wrong with this: ", error
-//     }; 
-//   }
-// });
 
 module.exports = {
     downloadReportLkf,

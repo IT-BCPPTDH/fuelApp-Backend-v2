@@ -22,7 +22,8 @@ const quotaUsageRoutes = require('./routes/quota_usage_routes')
 const downloadRoutes = require('./routes/admin_download_routes')
 const getCloseStation = require('./routes/form_lkf')
 
-const { generateDaily } = require('./controllers/quota_usage_controller')
+const { generateDaily } = require('./controllers/quota_usage_controller');
+const { sentMail } = require('./controllers/admin_download_controller');
 
 // Cors Setup
 app.options('/*', (res, req) => {
@@ -80,10 +81,14 @@ getCloseStation(app)
 
 // generateDaily()
 cron.schedule('0 0 * * *', async () => {
-// cron.schedule('*/30 * * * * *', async () => {
     generateDaily()
 })
 
+// Auto Report()
+// cron.schedule('30 08 * * *', async () => {
+// cron.schedule('*/10 * * * * *', async () => {
+//     sentMail()
+// })
 
 // Server Listener
 app.listen('0.0.0.0', port, (token) => {
