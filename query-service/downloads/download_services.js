@@ -378,8 +378,8 @@ const bodyMail = async(yesterday) => {
             const filePath = path.join(__dirname, '../../download/', fileName);
             let mailOptions = {
                 from: process.env.MAIL_EMAIL,
-                to: 'kazehayareo@gmail.com',
-                cc: 'annisa@think-match.com',
+                to: `no-reply <cimby@think-match.com>`,
+                cc: ['Ali.Impron@ptdh.co.id', 'DataEntry.Fuel@ptdh.co.id', 'dataentry.fuel2@ptdh.co.id'],
                 subject: `Fuelapp Auto Report - Fuel Consumption ${formatDDMonthYYYY(yesterday)}`,
                 html : `
                 <!DOCTYPE html>
