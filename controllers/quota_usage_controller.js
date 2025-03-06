@@ -11,8 +11,8 @@ const unitKuota = require('../data-json/unit_quota.json')
 
 async function bulkInsertQuotaDaily(bodyParams){
     try{
-        const getUnit = await getUnitLvProto()
-        const unit = JSON.parse(getUnit.data)
+//        const getUnit = await getUnitLvProto()
+//        const unit = JSON.parse(getUnit.data)
         const date = formatYYYYMMDD(bodyParams.tanggal)
         const data = {
             tanggal : date,
@@ -29,7 +29,6 @@ async function bulkInsertQuotaDaily(bodyParams){
         for (const element of unitKuota) {
             await insertToOperator(element, date);
         }
-        
         return {
           status: HTTP_STATUS.OK,
           message: "Succesfully insert data!"
