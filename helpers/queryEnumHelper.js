@@ -402,6 +402,7 @@ const QUERY_STRING = {
      `,
 
     getExistData: `select * from form_data fd where id = $1 and fd.date_trx = $2`,
+    GET_UNIT_QUOTA : `SELECT * from unit_quota`
 }
 
 module.exports = {

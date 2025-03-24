@@ -43,7 +43,6 @@ const { formatYYYYMMDD } = require('../../helpers/dateHelper');
 
 const postFormData = async (data) => {
     try {
-        console.log(data)
         const dt = new Date();
         let sign, pic, sync
         
@@ -85,6 +84,7 @@ const postFormData = async (data) => {
 
 const insertToForm = async (dataJson) => {
     try {
+        console.log("first", dataJson)
         const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
         const createOperatorQuery = `
@@ -96,17 +96,19 @@ const insertToForm = async (dataJson) => {
         
         const result = await db.query(createOperatorQuery, values);
 
+        const dates = formatYYYYMMDD(dataJson.date_trx)
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
             
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dataJson.date_trx])
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dates])
             if(existingData.rows.length > 0){
 
                 dataJson.qty += existingData.rows[0].used
             }
 
-            const params = [dataJson.qty, dataJson.no_unit, dataJson.date_trx]
+            console.log(dataJson.qty, dates)
+            const params = [dataJson.qty, dataJson.no_unit, dates]
             const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-            const res = await db.query(query, params)
+            // const res = await db.query(query, params)
         }
 
         if(result){
@@ -172,15 +174,20 @@ const editForm = async (updateFields) => {
         values.push(updateFields.id);
 
         const dates = formatYYYYMMDD(updateFields.date_trx)
+        console.log(dates)
         if (updateFields.no_unit.includes('LV') || updateFields.no_unit.includes('HLV')) {
             try {
                 let total 
                 const existId = await db.query(QUERY_STRING.getExistData, [updateFields.id, dates])
                 const existingData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.no_unit,dates])
                 if(existingData.rows.length > 0){
-                    const totalExist = existingData.rows[0].used  - existId.rows[0].qty
-                    // total = existingData.rows[0].used + existingData.rows[0].additional - parseFloat(updateFields.qty)
-                    total = totalExist + parseFloat(updateFields.qty)
+                    if(existingData.rows[0].additional === 0){
+                        total = parseFloat(updateFields.qty)
+                    }else{
+                        const totalExist = parseFloat(existingData.rows[0].used) + parseFloat(existingData.rows[0].additional)
+                        // total = existingData.rows[0].used + existingData.rows[0].additional - parseFloat(updateFields.qty)
+                        total = totalExist - parseFloat(updateFields.qty)
+                    }
                 }
                 const params = [total, updateFields.no_unit, dates];
                 const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
