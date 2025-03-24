@@ -4,35 +4,35 @@ const knexConfig = require('../../knexfile');
 const dbKnex = knex(knexConfig);
 const logger = require('../../helpers/pinoLog');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper')
-const { formatDateOption,formatYYYYMMDD,formatDateToDDMMYYYY,prevFormatYYYYMMDD } = require('../../helpers/dateHelper')
+const { formatDateOption,formatYYYYMMDD,formatDateToDDMMYYYY } = require('../../helpers/dateHelper')
 
 const insertToOperator = async (dataJson, today) => {
     let items
-    if(dataJson.EGI.toLowerCase().includes('bus elf')){
+    if(dataJson.egi.toLowerCase().includes('bus elf') || dataJson.kategori.toLowerCase().includes('elf')){
         items = {
             date: today,
             unit_no: dataJson.unit_no,
-            model: dataJson.EGI,
+            model: dataJson.egi,
             kategori: dataJson.kategori,
-            quota: 40,
+            quota: dataJson.quota === 0 ? 40 : dataJson.quota,
             used: 0,
             additional: 0 
         }
     }else {
-        const egiLower = dataJson.EGI.toLowerCase(); 
-        let quota = 0;
+        const egiLower = dataJson.egi.toLowerCase(); 
+        let quota 
         let kategori = dataJson.kategori;
     
-        if (egiLower.includes('colt')) {
-            quota = 30;
+        if (egiLower.includes('colt')|| dataJson.kategori.toLowerCase().includes('bus')) {
+            quota = dataJson.quota === 0 ? 30 : dataJson.quota
         } else if (egiLower.includes('triton') || dataJson.kategori.toLowerCase().includes('light vehicle')) {
-            quota = 20;
+            quota =  dataJson.quota === 0 ? 20 : dataJson.quota
         }
     
         items = {
             date: today,
             unit_no: dataJson.unit_no,
-            model: dataJson.EGI,
+            model: dataJson.egi,
             kategori: kategori,
             quota: quota,
             used: 0,
@@ -79,12 +79,22 @@ const getTotal = async (params)  => {
 }
 
 const updateActive = async (params) => {
-    const {active, unitNo, date} = params
+    const {active, unit_no, date} = params
+    const formatDate = (dateStr) => {
+        const [day, month, year] = dateStr.split('-'); 
+        return `${year}-${month}-${day}`;
+    };
+    let dates = formatDate(date);
     const query = 'UPDATE quota_usage SET "is_active" = $1 WHERE "unit_no" = $2 and "date" = $3'
-
-    const value = [active, unitNo, date]
+    const value = [active, unit_no, dates]
+    const queryUnit = 'UPDATE unit_quota SET "is_active" = $1 WHERE "unit_no" = $2'
+    const values = [active, unit_no]
     const res = await db.query(query, value);
-    return true
+    await db.query(queryUnit,values)
+    if(res){
+        return true
+    }
+    return false
 }
 
 const updateModel = async(updateFields) => {
@@ -105,19 +115,17 @@ const updateModel = async(updateFields) => {
     values.push(date, kategori, `%${model}%`);
 
     try{
+        await updateUnitQuota(updateFields)
         const query = `UPDATE quota_usage SET ${setClauses} 
         WHERE "date" = $${values.length - 2} AND (kategori = $${values.length - 1} OR model LIKE $${values.length});`;
-
         const result = await db.query(query, values)
         if(result){
             const getAlldata = await db.query(QUERY_STRING.getAllQuota, [dateBefore, date])
-
             const formattedResult = getAlldata.rows.map((item, index) => ({
                 ...item,
                 number: index+1,
                 date: formatDateToDDMMYYYY(item.date)
             }));
-
             return formattedResult
         }
         return false
@@ -127,6 +135,42 @@ const updateModel = async(updateFields) => {
         return false;
     }
 }
+
+const updateUnitQuota = async (updateFields) => {
+    const validFields = Object.keys(updateFields).filter(field => !['kategori', 'model', 'tanggal'].includes(field));
+
+    if (validFields.length === 0) {
+        console.error("No valid fields to update.");
+        return false;
+    }
+
+    const setClauses = validFields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+    const values = validFields.map(field => updateFields[field]);
+
+    let kategori = updateFields.kategori;
+    let egi = updateFields.model;
+
+    values.push(kategori, `%${egi}%`);
+
+    try {
+        const query = `
+            UPDATE unit_quota 
+            SET ${setClauses} 
+            WHERE (kategori = $${values.length - 1}::TEXT OR egi LIKE $${values.length}::TEXT);
+        `;
+
+        const result = await db.query(query, values);
+
+        if (result.rowCount > 0) {
+            return true;
+        }
+        return false;
+    } catch (error) {
+        logger.error(error);
+        console.error('Error during update:', error);
+        return false;
+    }
+};
 
 const updateTab = async (params) => {
     const {used,id} = params
