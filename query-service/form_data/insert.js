@@ -84,7 +84,6 @@ const postFormData = async (data) => {
 
 const insertToForm = async (dataJson) => {
     try {
-        console.log("first", dataJson)
         const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
         const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
         const createOperatorQuery = `
@@ -108,7 +107,7 @@ const insertToForm = async (dataJson) => {
             console.log(dataJson.qty, dates)
             const params = [dataJson.qty, dataJson.no_unit, dates]
             const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-            // const res = await db.query(query, params)
+            const res = await db.query(query, params)
         }
 
         if(result){
@@ -174,28 +173,30 @@ const editForm = async (updateFields) => {
         values.push(updateFields.id);
 
         const dates = formatYYYYMMDD(updateFields.date_trx)
-        console.log(dates)
         if (updateFields.no_unit.includes('LV') || updateFields.no_unit.includes('HLV')) {
             try {
-                let total 
-                const existId = await db.query(QUERY_STRING.getExistData, [updateFields.id, dates])
-                const existingData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.no_unit,dates])
-                if(existingData.rows.length > 0){
-                    if(existingData.rows[0].additional === 0){
-                        total = parseFloat(updateFields.qty)
-                    }else{
-                        const totalExist = parseFloat(existingData.rows[0].used) + parseFloat(existingData.rows[0].additional)
-                        // total = existingData.rows[0].used + existingData.rows[0].additional - parseFloat(updateFields.qty)
-                        total = totalExist - parseFloat(updateFields.qty)
+                let total;
+                const existingData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.no_unit, dates]);
+        
+                if (existingData.rows.length > 0) {
+                    // Jika `additional` bernilai 0, langsung set `used` ke `qty` yang baru
+                    if (parseFloat(existingData.rows[0].additional) === 0) {
+                        total = parseFloat(updateFields.qty);
+                    } else {
+                        // Menghitung `used` berdasarkan `qty` terbaru
+                        total = parseFloat(updateFields.qty) + parseFloat(existingData.rows[0].additional);
                     }
+                } else {
+                    total = parseFloat(updateFields.qty); // Jika tidak ada data sebelumnya
                 }
+        
                 const params = [total, updateFields.no_unit, dates];
-                const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-                const res = await db.query(query, params);
-              } catch (error) {
+                const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
+                await db.query(query, params);
+            } catch (error) {
                 console.error("Error executing query:", error);
-              }
-        }
+            }
+        }        
         const query = `UPDATE form_data SET ${setClauses} WHERE id = $${values.length}`;
         result = await db.query(query, values);
 
