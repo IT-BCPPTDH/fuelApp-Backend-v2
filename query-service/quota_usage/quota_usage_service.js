@@ -7,8 +7,9 @@ const { QUERY_STRING } = require('../../helpers/queryEnumHelper')
 const { formatDateOption,formatYYYYMMDD,formatDateToDDMMYYYY } = require('../../helpers/dateHelper')
 
 const insertToOperator = async (dataJson, today) => {
-    let items
-    if(dataJson.egi.toLowerCase().includes('bus elf') || dataJson.kategori.toLowerCase().includes('elf')){
+    let items;
+
+    if (dataJson.egi.toLowerCase().includes('bus elf') || dataJson.kategori.toLowerCase().includes('elf')) {
         items = {
             date: today,
             unit_no: dataJson.unit_no,
@@ -16,19 +17,20 @@ const insertToOperator = async (dataJson, today) => {
             kategori: dataJson.kategori,
             quota: dataJson.quota === 0 ? 40 : dataJson.quota,
             used: 0,
-            additional: 0 
-        }
-    }else {
-        const egiLower = dataJson.egi.toLowerCase(); 
-        let quota 
+            additional: 0,
+            is_active: dataJson.is_active // Ubah dari isActive ke is_active
+        };
+    } else {
+        const egiLower = dataJson.egi.toLowerCase();
+        let quota;
         let kategori = dataJson.kategori;
-    
-        if (egiLower.includes('colt')|| dataJson.kategori.toLowerCase().includes('bus')) {
-            quota = dataJson.quota === 0 ? 30 : dataJson.quota
+
+        if (egiLower.includes('colt') || dataJson.kategori.toLowerCase().includes('bus')) {
+            quota = dataJson.quota === 0 ? 30 : dataJson.quota;
         } else if (egiLower.includes('triton') || dataJson.kategori.toLowerCase().includes('light vehicle')) {
-            quota =  dataJson.quota === 0 ? 20 : dataJson.quota
+            quota = dataJson.quota === 0 ? 20 : dataJson.quota;
         }
-    
+
         items = {
             date: today,
             unit_no: dataJson.unit_no,
@@ -36,29 +38,29 @@ const insertToOperator = async (dataJson, today) => {
             kategori: kategori,
             quota: quota,
             used: 0,
-            additional: 0
+            additional: 0,
+            is_active: dataJson.is_active 
         };
     }
-    
+
     const sanitizedColumns = Object.keys(items).map(key => `"${key}"`);
     const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
     const createOperatorQuery = `
       INSERT INTO quota_usage (${sanitizedColumns.join(', ')})
       VALUES (${valuesPlaceholders})
     `;
-    const values = Object.keys(items).map(key => items[key]);
+    const values = Object.values(items); // Ubah dari Object.keys(items).map() ke Object.values(items)
+
     try {
         const result = await db.query(createOperatorQuery, values);
-        if(result){
-            return true
-        }
-        return false
+        return !!result;
     } catch (error) {
-        logger.error(error)
+        logger.error(error);
         console.error('Error during update:', error);
         return false;
     }
-}
+};
+
 
 const getTotal = async (params)  => {
     try {
