@@ -27,7 +27,7 @@ const QUERY_STRING = {
     DELETE_FORM_DATA: `DELETE FROM form_data where from_data_id = $1`,
 
     getLastDataByStation: `select * from form_data 
-    where no_unit = $1 AND date_trx < $2 and "type" = 'Issued'
+    where no_unit = $1 AND date_trx <= $2 and "type" = 'Issued'
     ORDER BY created_at Desc LIMIT 1;`, 
 
     getLastDataMonth: `select * from form_data 

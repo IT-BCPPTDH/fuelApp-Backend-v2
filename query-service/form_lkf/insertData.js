@@ -7,6 +7,17 @@ const postFormLkf = async (data) => {
         const dt = new Date()
         let { lkf_id,date, shift, hm_start, site, fuelman_id, station, opening_dip, opening_sonding, flow_meter_start } = data
         const params = [lkf_id,date,shift,hm_start,site,fuelman_id,station,opening_dip,opening_sonding, flow_meter_start, dt, fuelman_id]
+
+        await db.query(`INSERT INTO log_form_lkf (lkf_id, "date", shift, hm_start, site, fuelman_id, station, 
+            opening_dip, opening_sonding,  flow_meter_start,
+             "status", time_opening, created_at, created_by) VALUES
+             ($1, $2, $3, $4, $5,$6, $7, 
+             $8, $9, $10, $11, NOW(), NOW(), $12)`,
+            [
+                lkf_id,date,shift,hm_start,site,fuelman_id,
+                station,opening_dip,opening_sonding, flow_meter_start, "Add", fuelman_id
+            ]
+        )
         let result = await db.query(QUERY_STRING.postFromLKF, params)
         if(result.rowCount>0){
             return result.rows[0];
