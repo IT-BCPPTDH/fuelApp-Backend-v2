@@ -161,6 +161,17 @@ function formattedHHMMservice(dateString) {
     return `${hours}:${minutes}`;
 }
 
+const formatInputYYYYMMDD = (input) => {
+    const date = new Date(input);
+  if (isNaN(date)) return null;
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 module.exports ={
     formatYYYYMMDD,
     prevFormatYYYYMMDD,
@@ -176,5 +187,6 @@ module.exports ={
     formattedHeaders,
     formatDateMMYYYY,
     formatDDMonthYYYY,
-    formattedHHMMservice
+    formattedHHMMservice,
+    formatInputYYYYMMDD
 }
