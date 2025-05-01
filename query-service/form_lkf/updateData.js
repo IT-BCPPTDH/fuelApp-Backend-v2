@@ -13,6 +13,15 @@ const closeFormLkf = async (data) => {
 
         const params = [hm_end,closing_dip,closing_sonding,flow_meter_end,fuelman_id,dt,note,sign, close_data, variant, lkf_id]
 
+        await db.query(`update log_form_lkf set hm_end = $1, 
+            closing_dip = $2, closing_sonding = $3, flow_meter_end = $4, updated_by = $5,
+            updated_at = $6, note = $7, signature = $8, status = 'Add'
+            where lkf_id = $9`,
+            [hm_end, closing_dip, closing_sonding, flow_meter_end, fuelman_id, dt, note,
+                sign, lkf_id
+            ]
+        )
+
         let result = await db.query(QUERY_STRING.closeFromLKF, params)
         
         if(result.rowCount>0){
