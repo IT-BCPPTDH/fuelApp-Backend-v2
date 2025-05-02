@@ -125,9 +125,10 @@ const insertToForm = async (dataJson) => {
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
             
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dates])
-            if(existingData.rows.length > 0){
-
-                dataJson.qty += existingData.rows[0].used
+            let finalQty = dataJson.qty;
+            console.log("final", finalQty)
+            if (existingData.rows.length > 0) {
+                finalQty += existingData.rows[0].used;
             }
 
             const {
@@ -179,7 +180,7 @@ const insertToForm = async (dataJson) => {
                 ]
             );
 
-            const params = [dataJson.qty, dataJson.no_unit, dates]
+            const params = [finalQty, dataJson.no_unit, dates]
             const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
             const res = await db.query(query, params)
         }
