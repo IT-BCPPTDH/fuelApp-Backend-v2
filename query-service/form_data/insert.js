@@ -123,7 +123,7 @@ const insertToForm = async (dataJson) => {
         const dates = formatInputYYYYMMDD(dataJson.date_trx)
         console.log(dataJson)
         if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
-            
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dates])
             const existingUsed = existingData.rows.length > 0 
                 ? parseFloat(existingData.rows[0].used) 
                 : 0;
