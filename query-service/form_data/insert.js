@@ -63,6 +63,7 @@ const postFormData = async (data) => {
         
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit, date]);
             if (existingData.rows.length > 0) {
+                console.log("first")
                 qty += existingData.rows[0].used;
                 if (qty > existingData.rows[0].quota) {
                     return 'This unit has exceeded its quota limit!';
@@ -120,71 +121,54 @@ const insertToForm = async (dataJson) => {
         
         const result = await db.query(createOperatorQuery, values);
 
-        const dates = formatInputYYYYMMDD(dataJson.date_trx)
-        console.log(dataJson)
-        if (dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')) {
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [dataJson.no_unit,dates])
-            const existingUsed = existingData.rows.length > 0 
-                ? parseFloat(existingData.rows[0].used) 
-                : 0;
+        const {
+            from_data_id,
+            no_unit,
+            model_unit,
+            owner,
+            date_trx,
+            hm_last,
+            hm_km,
+            qty_last,
+            qty,
+            flow_start,
+            flow_end,
+            jde_operator,
+            name_operator,
+            start,
+            end,
+            fbr,
+            lkf_id,
+            signature,
+            type,
+            photo
+        } = dataJson;
 
-            const totalUsed = existingUsed + parseFloat(dataJson.qty);
-
-            console.log("totalUsed",totalUsed)
-
-            const {
-                from_data_id,
-                no_unit,
-                model_unit,
-                owner,
-                date_trx,
-                hm_last,
-                hm_km,
-                qty_last,
-                qty,
-                flow_start,
-                flow_end,
-                jde_operator,
-                name_operator,
-                start,
-                end,
-                fbr,
-                lkf_id,
-                signature,
-                type,
-                photo
-            } = dataJson;
-    
-            await db.query(
-                `INSERT INTO log_form_data (
-                  from_data_id, no_unit, model_unit, owner, date_trx,
-                  hm_last, hm_km, qty_last, qty,
-                  flow_start, flow_end,
-                  jde_operator, name_operator, "start", "end",
-                  fbr, lkf_id, signature, "type",
-                  status, photo, created_at, updated_at, created_by
-                ) VALUES (
-                  $1, $2, $3, $4, $5,
-                  $6, $7, $8, $9,
-                  $10, $11,
-                  $12, $13, $14, $15,
-                  $16, $17, $18, $19,
-                  $20, $21, NOW(), NOW(), $22
-                )`,
-                [
-                  from_data_id, no_unit, model_unit, owner, date_trx,
-                  hm_last, hm_km, qty_last, qty,
-                  flow_start, flow_end,
-                  jde_operator, name_operator, start, end,
-                  fbr, lkf_id, signature, type,
-                  'add', photo, 'fuelman' 
-                ]
-            );
-
-            const params = [totalUsed, dataJson.no_unit, dates]
-            const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-            const res = await db.query(query, params)
-        }
+        await db.query(
+            `INSERT INTO log_form_data (
+              from_data_id, no_unit, model_unit, owner, date_trx,
+              hm_last, hm_km, qty_last, qty,
+              flow_start, flow_end,
+              jde_operator, name_operator, "start", "end",
+              fbr, lkf_id, signature, "type",
+              status, photo, created_at, updated_at, created_by
+            ) VALUES (
+              $1, $2, $3, $4, $5,
+              $6, $7, $8, $9,
+              $10, $11,
+              $12, $13, $14, $15,
+              $16, $17, $18, $19,
+              $20, $21, NOW(), NOW(), $22
+            )`,
+            [
+              from_data_id, no_unit, model_unit, owner, date_trx,
+              hm_last, hm_km, qty_last, qty,
+              flow_start, flow_end,
+              jde_operator, name_operator, start, end,
+              fbr, lkf_id, signature, type,
+              'add', photo, 'fuelman' 
+            ]
+        );
 
         if(result){
             return true
