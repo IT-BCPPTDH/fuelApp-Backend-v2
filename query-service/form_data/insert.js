@@ -191,15 +191,15 @@ const deleteForm = async (params) => {
         }));
 
         for (const data of extractedData) {
-            const date = formatYYYYMMDD(data.date)
+            const date = formatInputYYYYMMDD(data.date)
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.unit, date]);
-            let updatedUsed
+            let updatedUsed = 0
             if(existingData.rows.length > 0){
                 updatedUsed = existingData.rows[0].used - data.qty; 
             }
             const params = [updatedUsed, data.unit, date]
             const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-            const res = await db.query(query, params)
+            await db.query(query, params)
           
         }
 
