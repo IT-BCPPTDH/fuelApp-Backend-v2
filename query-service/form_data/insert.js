@@ -63,7 +63,6 @@ const postFormData = async (data) => {
         
             const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.no_unit, date]);
             if (existingData.rows.length > 0) {
-                console.log("first")
                 qty += existingData.rows[0].used;
                 if (qty > existingData.rows[0].quota) {
                     return 'This unit has exceeded its quota limit!';
@@ -192,12 +191,13 @@ const deleteForm = async (params) => {
         }));
 
         for (const data of extractedData) {
-            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.unit, data.date]);
+            const date = formatYYYYMMDD(data.date)
+            const existingData = await db.query(QUERY_STRING.getExistingQuota, [data.unit, date]);
             let updatedUsed
             if(existingData.rows.length > 0){
                 updatedUsed = existingData.rows[0].used - data.qty; 
             }
-            const params = [updatedUsed, data.unit, data.date]
+            const params = [updatedUsed, data.unit, date]
             const query = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
             const res = await db.query(query, params)
           
@@ -258,6 +258,7 @@ const deleteForm = async (params) => {
         }else{
             return false
         }
+        return false
     }catch (error){
         console.log(error)
         logger.error(error)
