@@ -74,7 +74,7 @@ function renderTemplate(index, sheet, data, headers, startRow) {
     sheet.getCell(`B${startRow + 2}`).value = 'Shift';
     sheet.getCell(`D${startRow}`).value = 'FM Awal';
     sheet.getCell(`D${startRow + 1}`).value = 'FM Akhir';
-    sheet.getCell(`D${startRow + 2}`).value = 'Total In';
+    sheet.getCell(`D${startRow + 2}`).value = 'Total Issued';
     sheet.getCell(`F${startRow + 2}`).value = 'Time';
     sheet.getCell(`H${startRow + 2}`).value = 'Flow Meter';
     sheet.getCell(`J${startRow + 2}`).value = 'Shift';
@@ -474,12 +474,14 @@ const downloadReportLkf = async (data) => {
         let query = `SELECT fl.lkf_id, 
                             TO_CHAR((fl."date"::timestamp at TIME zone 'UTC' at TIME zone 'Asia/Bangkok'), 'YYYY-MM-DD') as date,
                             fl.shift, fl.site, fl.fuelman_id, fl.station, fl.opening_sonding, fl.closing_sonding, 
-                            fl.opening_dip, fl.closing_dip, fl.flow_meter_start, fl.flow_meter_end, 
+                            fl.opening_dip, fl.closing_dip, fd2.flow_start , fd2.flow_end, 
                             fl."status", fl.note, fl.created_at, fl.updated_at, 
-                            fl2.login_time, fl2.logout_time, fl.hm_start, fl.hm_end,
-                            fd.no_unit, fd.qty, fd.jde_operator as operator, fd."start", fd."end", fd.type 
+                            fl2.login_time, fl2.logout_time, fd2.hm_km,fd2.hm_last,
+                            fl.hm_start, fl.hm_end,
+                            fd.no_unit, fd2.qty, fd2.qty_last,fd.jde_operator as operator, fd."start", fd."end", fd.type 
                      FROM form_lkf fl
                      LEFT JOIN fuelman_log fl2 ON fl.fuelman_id = fl2.jde_operator 
+                     left join form_data fd2 on fl.lkf_id = fd2.lkf_id
                      JOIN form_data fd ON fd.lkf_id = fl.lkf_id 
                      WHERE fl."date" BETWEEN $1 AND $2`;
 
@@ -504,7 +506,6 @@ const downloadReportLkf = async (data) => {
         }
 
         query += ' ORDER BY fl.date, fl.shift, fl.lkf_id';
-        console.log(query)
 
         const result = await db.query(query, values);
         
@@ -515,16 +516,11 @@ const downloadReportLkf = async (data) => {
             };
         }
 
-        // Debugging: Log fetched rows
-        // console.log("Fetched Rows:", result.rows);
-
-        // Filter out duplicates by a unique identifier, e.g., lkf_id
         const uniqueRows = Array.from(new Map(result.rows.map(item => [item.lkf_id, item])).values());
 
         if (data.option === "Excel") {
             fileName = `Excel-${dateBefore}-${dateNow}.xlsx`;
             const datas = transformData(result.rows); 
-            console.log(datas)
             const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
             await generateExcel(datas, headers, fileName);
@@ -582,9 +578,9 @@ const downloadReportLkf = async (data) => {
                 val.closing_dip,
                 val.opening_sonding,
                 val.closing_sonding,
-                val.flow_meter_start,
-                val.flow_meter_end,
-                val.flow_meter_end - val.flow_meter_start,
+                val.flow_start,
+                val.flow_end,
+                val.flow_end - val.flow_start,
                 val.status,
                 val.notes,
                 val.login_time,
@@ -621,16 +617,16 @@ const transformData = (data) => {
                 lkf_id: item.lkf_id,
                 station: item.station,
                 shift: item.shift,
-                flow_meter_start: item.flow_meter_start,
-                flow_meter_end: item.flow_meter_end,
+                flow_meter_start: item.flow_start,
+                flow_meter_end: item.flow_end,
                 date: `${formatedDatesNames(item.date)}`,
-                total_in: item.flow_meter_end - item.flow_meter_start,
+                total_in: 0, 
                 data_unit: []
             };
             result.push(existingEntry);
         }
 
-        // Check if the no_unit already exists in data_unit array
+        // Cek duplikasi sebelum menambahkan ke data_unit
         const unitExists = existingEntry.data_unit.some(
             unit => unit.no_unit === item.no_unit &&
                     unit.start === formattedHHMM(item.start) &&
@@ -642,14 +638,19 @@ const transformData = (data) => {
             existingEntry.data_unit.push({
                 no_unit: item.no_unit,
                 driver: item.operator,
+                hmkm: item.hm_km,
                 qty: item.qty,
                 start: formattedHHMM(item.start),
                 end: formattedHHMM(item.end),
-                awal: item.flow_meter_start,
-                akhir: item.flow_meter_end,
+                awal: item.flow_start,
+                akhir: item.flow_end,
                 shift: item.shift,
                 type: item.type
             });
+
+            existingEntry.flow_meter_start = existingEntry.data_unit[0].awal;
+            existingEntry.flow_meter_end = item.flow_end; 
+            existingEntry.total_in = existingEntry.flow_meter_end - existingEntry.flow_meter_start;
         }
     });
 
