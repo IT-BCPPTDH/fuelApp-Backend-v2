@@ -471,19 +471,43 @@ const downloadReportLkf = async (data) => {
         let paramIndex = 3;
 
         // Use DISTINCT in SQL to filter duplicates at the database level
-        let query = `SELECT fl.lkf_id, 
-                            TO_CHAR((fl."date"::timestamp at TIME zone 'UTC' at TIME zone 'Asia/Bangkok'), 'YYYY-MM-DD') as date,
-                            fl.shift, fl.site, fl.fuelman_id, fl.station, fl.opening_sonding, fl.closing_sonding, 
-                            fl.opening_dip, fl.closing_dip, fd2.flow_start , fd2.flow_end, 
-                            fl."status", fl.note, fl.created_at, fl.updated_at, 
-                            fl2.login_time, fl2.logout_time, fd2.hm_km,fd2.hm_last,
-                            fl.hm_start, fl.hm_end,
-                            fd.no_unit, fd2.qty, fd2.qty_last,fd.jde_operator as operator, fd."start", fd."end", fd.type 
-                     FROM form_lkf fl
-                     LEFT JOIN fuelman_log fl2 ON fl.fuelman_id = fl2.jde_operator 
-                     left join form_data fd2 on fl.lkf_id = fd2.lkf_id
-                     JOIN form_data fd ON fd.lkf_id = fl.lkf_id 
-                     WHERE fl."date" BETWEEN $1 AND $2`;
+        let query = `SELECT 
+                    fl.lkf_id, 
+                    TO_CHAR((fl."date"::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok'), 'YYYY-MM-DD') AS date,
+                    fl.shift, 
+                    fl.site, 
+                    fl.fuelman_id, 
+                    fl.station, 
+                    fl.opening_sonding, 
+                    fl.closing_sonding, 
+                    fl.opening_dip, 
+                    fl.closing_dip, 
+                    fd.flow_start, 
+                    fd.flow_end, 
+                    fl."status", 
+                    fl.note, 
+                    fl.created_at, 
+                    fl.updated_at, 
+                    fl2.login_time, 
+                    fl2.logout_time, 
+                    fd.hm_km,
+                    fd.hm_last,
+                    fl.hm_start, 
+                    fl.hm_end,
+                    fd.no_unit, 
+                    fd.qty, 
+                    fd.qty_last,
+                    fd.jde_operator AS operator, 
+                    fd."start", 
+                    fd."end", 
+                    fd.type 
+                FROM form_lkf fl
+                LEFT JOIN fuelman_log fl2 
+                    ON fl.fuelman_id = fl2.jde_operator 
+                LEFT JOIN form_data fd 
+                    ON fl.lkf_id = fd.lkf_id 
+                WHERE 
+                fl."date"::date BETWEEN $1 AND $2`;
 
         let values = [dateBefore, dateNow];
 
@@ -520,6 +544,7 @@ const downloadReportLkf = async (data) => {
 
         if (data.option === "Excel") {
             fileName = `Excel-${dateBefore}-${dateNow}.xlsx`;
+            console.log(result.rows)
             const datas = transformData(result.rows); 
             const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
@@ -608,7 +633,9 @@ const downloadReportLkf = async (data) => {
 
 const transformData = (data) => {
     const result = [];
+    const specialTypes = ['Receipt', 'Transfer', 'Receipt KPC'];
 
+    // --- TAHAP 1: MENGELOMPOKKAN DATA, DEDUPILKASI, DAN MENERAPKAN KONDISI SPESIAL ---
     data.forEach((item) => {
         let existingEntry = result.find(entry => entry.lkf_id === item.lkf_id);
 
@@ -617,16 +644,15 @@ const transformData = (data) => {
                 lkf_id: item.lkf_id,
                 station: item.station,
                 shift: item.shift,
-                flow_meter_start: item.flow_start,
-                flow_meter_end: item.flow_end,
                 date: `${formatedDatesNames(item.date)}`,
-                total_in: 0, 
+                flow_meter_start: 0,
+                flow_meter_end: 0,
+                total_in: 0,
                 data_unit: []
             };
             result.push(existingEntry);
         }
 
-        // Cek duplikasi sebelum menambahkan ke data_unit
         const unitExists = existingEntry.data_unit.some(
             unit => unit.no_unit === item.no_unit &&
                     unit.start === formattedHHMM(item.start) &&
@@ -635,23 +661,44 @@ const transformData = (data) => {
         );
 
         if (!unitExists) {
+            const isSpecialType = specialTypes.includes(item.type);
+
             existingEntry.data_unit.push({
                 no_unit: item.no_unit,
                 driver: item.operator,
-                hmkm: item.hm_km,
                 qty: item.qty,
                 start: formattedHHMM(item.start),
                 end: formattedHHMM(item.end),
-                awal: item.flow_start,
-                akhir: item.flow_end,
                 shift: item.shift,
-                type: item.type
+                type: item.type,
+                hmkm: isSpecialType ? 0 : item.hm_km,
+                awal: isSpecialType ? 0 : item.flow_start,
+                akhir: isSpecialType ? 0 : item.flow_end,
             });
-
-            existingEntry.flow_meter_start = existingEntry.data_unit[0].awal;
-            existingEntry.flow_meter_end = item.flow_end; 
-            existingEntry.total_in = existingEntry.flow_meter_end - existingEntry.flow_meter_start;
         }
+    });
+
+    // --- TAHAP 2: PENGURUTAN DAN AGREGASI FINAL UNTUK SETIAP KELOMPOK ---
+    result.forEach(entry => {
+        entry.data_unit.sort((a, b) => {
+            const startCompare = a.start.localeCompare(b.start);
+            if (startCompare !== 0) return startCompare;
+            return a.end.localeCompare(b.end);
+        });
+
+        const relevantUnits = entry.data_unit.filter(
+            unit => !specialTypes.includes(unit.type)
+        );
+
+        if (relevantUnits.length > 0) {
+            entry.flow_meter_start = relevantUnits[0].awal;
+            entry.flow_meter_end = relevantUnits[relevantUnits.length - 1].akhir;
+        } else {
+            entry.flow_meter_start = 0;
+            entry.flow_meter_end = 0;
+        }
+        
+        entry.total_in = entry.flow_meter_end - entry.flow_meter_start;
     });
 
     return result;
