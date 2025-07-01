@@ -79,7 +79,74 @@ const delData = async(params) => {
     }
 }
 
+const addData = async (updateFields) => {
+    const {
+        lkf_id, date, shift, hm_start, hm_end, site, fuelman_id,
+        station, opening_dip, opening_sonding, closing_dip, closing_sonding,
+        close_data, variant, flow_meter_start, flow_meter_end, status,
+        time_opening, notes, created_by, signature 
+    } = updateFields;
+
+    // Mulai transaksi
+    await db.query('BEGIN');
+
+    try {
+        const columns = [
+            'lkf_id', '"date"', 'shift', 'site', 'fuelman_id', 'station',
+            '"status"', 'note', 'created_by'
+        ];
+        const values = [
+            lkf_id, date, shift, site, fuelman_id, station,
+            status, notes, created_by 
+        ];
+
+        if (status === 'opening') {
+            columns.push('hm_start', 'opening_dip', 'opening_sonding', 'flow_meter_start', 'time_opening');
+            values.push(hm_start, opening_dip, opening_sonding, flow_meter_start, time_opening);
+        } else { 
+            columns.push(
+                'hm_start', 'hm_end', 'opening_dip', 'opening_sonding', 'closing_dip',
+                'closing_sonding', 'close_data', 'variant', 'flow_meter_start',
+                'flow_meter_end', 'time_opening'
+            );
+            values.push(
+                hm_start, hm_end, opening_dip, opening_sonding, closing_dip,
+                closing_sonding, close_data, variant, flow_meter_start,
+                flow_meter_end, time_opening
+            );
+        }
+
+        // Tambahkan kolom created_at ke dalam columns
+        columns.push('created_at');
+
+        const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+        const queryText = `
+            INSERT INTO form_lkf(${columns.join(', ')}) 
+            VALUES (${placeholders}, NOW()) 
+            RETURNING *`;
+
+        // console.log("With Values:", values);
+        const result = await db.query(queryText, values);
+
+        if (result.rowCount === 0) {
+            await db.query('ROLLBACK');
+            return false;
+        }
+
+        await db.query('COMMIT');
+        return true;
+
+    } catch (error) {
+        await db.query('ROLLBACK');
+        logger.error("Error in addData:", error);
+        console.log(error);
+        return false;
+    }
+};
+
+
 module.exports = {
     editData,
-    delData
+    delData,
+    addData
 }
