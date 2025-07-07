@@ -12,15 +12,16 @@ const getTotalData = async (params) => {
         if(result.length == 0){
             return false
         }
+        const totalReceived = result[0].total_receive + result[0].total_receive_kpc
         const jmlIssued = result[0].total_issued + result[0].total_transfer
-        const jmlStock = result[0].total_open  + result[0].total_receive + result[0].total_receive_kpc 
+        const jmlStock = result[0].total_open + totalReceived
         const jmlBalance = jmlStock - jmlIssued
         const totalIssued = result[0].total_issued + result[0].total_transfer
         const totalMeters = result[0].flow_meter_end - result[0].flow_meter_start
         const daily = result[0].total_close - jmlBalance
         const data = { 
             openStock : result[0].total_open ? result[0].total_open.toLocaleString('en-US') : 0,
-            receipt: result[0].total_receive ? result[0].total_receive.toLocaleString('en-US') : 0,
+            receipt: totalReceived ? totalReceived.toLocaleString('en-US') : 0,
             receipt_kpc: result[0].total_receive_kpc ? result[0].total_receive_kpc.toLocaleString('en-US') : 0,
             stock: jmlStock ? jmlStock.toLocaleString('en-US') : 0,
             issued: totalIssued ? totalIssued.toLocaleString('en-US') : 0,
