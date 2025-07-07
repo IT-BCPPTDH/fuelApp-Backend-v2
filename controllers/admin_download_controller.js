@@ -633,7 +633,7 @@ const downloadReportLkf = async (data) => {
 
 const transformData = (data) => {
     const result = [];
-    const specialTypes = ['Receipt', 'Transfer', 'Receipt KPC'];
+    const specialTypes = ['Receipt','Receipt KPC'];
 
     // --- TAHAP 1: MENGELOMPOKKAN DATA, DEDUPILKASI, DAN MENERAPKAN KONDISI SPESIAL ---
     data.forEach((item) => {
