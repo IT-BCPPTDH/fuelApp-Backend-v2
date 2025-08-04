@@ -14,7 +14,7 @@ const postFormLkf = async (data) => {
              ($1, $2, $3, $4, $5,$6, $7, 
              $8, $9, $10, $11, NOW(), NOW(), $12)`,
             [
-                lkf_id,date,shift,hm_start,site,fuelman_id,
+                lkf_id,date,shift,hm_start?hm_start:0,site,fuelman_id,
                 station,opening_dip,opening_sonding, flow_meter_start, "Add", fuelman_id
             ]
         )
