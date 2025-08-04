@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { formattedHeaders, formatDDMonthYYYY,formattedHHMM,formatedDatesNames } = require('../../helpers/dateHelper');
+const { formattedHeaders, formatDDMonthYYYY,formattedHHMM,formatedDatesNames, formatYYYYMMDD } = require('../../helpers/dateHelper');
 const logger = require('../../helpers/pinoLog');
 const { getEquipment, getFilterBanlaws, getMdElipse } = require('../../helpers/proto/master-data');
 const { QUERY_STRING } = require('../../helpers/queryEnumHelper');
@@ -357,7 +357,6 @@ const numberFormat = (num) => {
     return new Intl.NumberFormat('en-US').format(num);
 };
 
-
 const bodyMail = async(yesterday) => {
     try{
         const content = await getContentyMail(yesterday)
@@ -505,11 +504,39 @@ const sumCategory = (data) => {
     return datas
 }
 
+const getListStation = async(data) => {
+     try{
+        let dateStart, dateEnd
+        if(dateStart == null && dateEnd == null ){
+            const date = new Date()
+            dateStart = formatYYYYMMDD(date)
+            dateEnd = formatYYYYMMDD(date)
+        }else{
+            dateStart = formatYYYYMMDD(data.dateStart)
+            dateEnd = formatYYYYMMDD(data.dateEnd)
+        }
+        
+        const requestQuery = await db.query(`SELECT fl.station from form_lkf fl where fl."date" 
+            between $1 and $2`, [dateStart, dateEnd])
+        
+        if(requestQuery.rowCount == 0) {
+            console.log('You have no data!')
+            logger.error(error);
+            return false
+        }
+        return requestQuery.rows
+    }catch(error){
+        console.log(error)
+        logger.error(error);
+    }
+}
+
 module.exports = {
     getData,
     getFCShift,
     getFCHmkm,
     getKPC,
     getFCByOwner,
-    bodyMail
+    bodyMail,
+    getListStation
 }

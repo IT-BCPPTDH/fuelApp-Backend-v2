@@ -10,7 +10,8 @@ const { formatYYYYMMDD, formatedDatesYYYYMMDD, formattedHHMM, formatedMonth,
 const { HTTP_STATUS, STATUS_MESSAGE } = require("../helpers/enumHelper");
 const { getTableDashboard } = require('../query-service/admin_dashboard/admin_dashboard_services');
 const { getData, getFCShift, getFCHmkm,getKPC, 
-    getContentyMail, getFCByOwner, bodyMail } = require('../query-service/downloads/download_services');
+    getContentyMail, getFCByOwner, bodyMail, 
+    getListStation} = require('../query-service/downloads/download_services');
 
 
 const generateExcel = (data, headers, fileName) => {
@@ -238,8 +239,8 @@ function renderTemplate(index, sheet, data, headers, startRow) {
 
             const jamAwal = unit.start || '00:00';
             const jamAkhir = unit.end || '00:00';
-            sheet.getCell(`M${row}`).value = convertTimeToInteger(jamAwal);
-            sheet.getCell(`N${row}`).value = convertTimeToInteger(jamAkhir);
+            sheet.getCell(`M${row}`).value = (jamAwal && jamAwal !== '--:--') ? convertTimeToInteger(jamAwal) : 0;
+            sheet.getCell(`N${row}`).value = (jamAkhir && jamAkhir !== '--:--') ? convertTimeToInteger(jamAkhir) : 0;
 
             totalQty += unit.qty || 0;
 
@@ -544,7 +545,6 @@ const downloadReportLkf = async (data) => {
 
         if (data.option === "Excel") {
             fileName = `Excel-${dateBefore}-${dateNow}.xlsx`;
-            console.log(result.rows)
             const datas = transformData(result.rows); 
             const headers = ['Unit', 'HM/KM', 'Qty', 'Driver', 'IN', 'OUT', 'Awal', 'Akhir', 'Shift'];
 
@@ -633,10 +633,9 @@ const downloadReportLkf = async (data) => {
 
 const transformData = (data) => {
     const result = [];
-    // const specialTypes = ['Receipt','Receipt KPC'];
-    const specialTypes = [];
+    const specialTypes = []; 
 
-    // --- TAHAP 1: MENGELOMPOKKAN DATA, DEDUPILKASI, DAN MENERAPKAN KONDISI SPESIAL ---
+   
     data.forEach((item) => {
         let existingEntry = result.find(entry => entry.lkf_id === item.lkf_id);
 
@@ -645,7 +644,8 @@ const transformData = (data) => {
                 lkf_id: item.lkf_id,
                 station: item.station,
                 shift: item.shift,
-                date: `${formatedDatesNames(item.date)}`,
+                // PERBAIKAN: Cek apakah item.date ada sebelum memformatnya
+                date: item.date ? formatedDatesNames(item.date) : 'Invalid Date',
                 flow_meter_start: 0,
                 flow_meter_end: 0,
                 total_in: 0,
@@ -654,10 +654,11 @@ const transformData = (data) => {
             result.push(existingEntry);
         }
 
+        // PERBAIKAN: Cek apakah item.start dan item.end ada sebelum membandingkan
         const unitExists = existingEntry.data_unit.some(
             unit => unit.no_unit === item.no_unit &&
-                    unit.start === formattedHHMM(item.start) &&
-                    unit.end === formattedHHMM(item.end) &&
+                    unit.start === (item.start ? formattedHHMM(item.start) : '--:--') &&
+                    unit.end === (item.end ? formattedHHMM(item.end) : '--:--') &&
                     unit.type === item.type
         );
 
@@ -668,8 +669,9 @@ const transformData = (data) => {
                 no_unit: item.no_unit,
                 driver: item.operator,
                 qty: item.qty,
-                start: formattedHHMM(item.start),
-                end: formattedHHMM(item.end),
+                // PERBAIKAN: Cek apakah item.start dan item.end ada sebelum memformatnya
+                start: item.start ? formattedHHMM(item.start) : '--:--',
+                end: item.end ? formattedHHMM(item.end) : '--:--',
                 shift: item.shift,
                 type: item.type,
                 hmkm: isSpecialType ? 0 : item.hm_km,
@@ -682,9 +684,16 @@ const transformData = (data) => {
     // --- TAHAP 2: PENGURUTAN DAN AGREGASI FINAL UNTUK SETIAP KELOMPOK ---
     result.forEach(entry => {
         entry.data_unit.sort((a, b) => {
-            const startCompare = a.start.localeCompare(b.start);
+            // PERBAIKAN: Pastikan `a.start` dan `b.start` adalah string sebelum membandingkan
+            const startA = a.start || '';
+            const startB = b.start || '';
+            const startCompare = startA.localeCompare(startB);
+            
             if (startCompare !== 0) return startCompare;
-            return a.end.localeCompare(b.end);
+            
+            const endA = a.end || '';
+            const endB = b.end || '';
+            return endA.localeCompare(endB);
         });
 
         const relevantUnits = entry.data_unit.filter(
@@ -2539,12 +2548,37 @@ const sentMail = async() => {
     }
 }
 
+const listStation = async(data) => {
+    try{
+        let result = await getListStation(data)
+        if(result){
+            return {
+                status: HTTP_STATUS.OK,
+                message: 'Successfuly get data.',
+                data: result
+            };
+        }else{
+            return {
+                status: HTTP_STATUS.NOT_FOUND,
+                message: 'Data Not Found',
+            };
+        }
+    }catch(error){
+        logger.error(err)
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${err}`,
+        };
+    }
+}
+
 module.exports = {
     downloadReportLkf,
     downloadHomeStation,
     downloadLkfDetailedLkf,
     downloadLkfElipse,
     DailyConsumtion,
-    sentMail
+    sentMail,
+    listStation
 }
 

@@ -16,7 +16,7 @@ module.exports = (app) => {
         const theFile = toArrayBuffer(fs.readFileSync(filePath));
         res.end(theFile);
     });    
-    // app.post('/api/admin/get-dashboard-table',(res,req) => dashboard.handleDashboardTable(res,req))
+    app.post('/api/admin/get-station-active',(res,req) => downloadLkf.handleListStationActive(res,req))
 }
 
 function toArrayBuffer(buffer) {

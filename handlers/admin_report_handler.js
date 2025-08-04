@@ -1,5 +1,6 @@
 const { downloadReportLkf, downloadHomeStation, downloadLkfDetailedLkf, downloadLkfElipse,
-    DailyConsumtion, sentMail } = require("../controllers/admin_download_controller");
+    DailyConsumtion, sentMail, 
+    listStation} = require("../controllers/admin_download_controller");
 const {handleResponseParams, handleResponseJsonAdmin, handleResponseJsonOperator} = require("./httpResponseHandler");
 
 async function handleDownload(res, req) {
@@ -26,11 +27,16 @@ async function handleDownloadDailys(res, req) {
     await handleResponseParams(res, req, sentMail , 0 )
 }
 
+async function handleListStationActive(res, req) {
+    await handleResponseJsonOperator(res, req, listStation , true )
+}
+
 module.exports = {
     handleDownload,
     handleDownloadStation,
     handleDownloadLkf,
     handleDownloadElipseLkf,
     handleDownloadDaily,
-    handleDownloadDailys
+    handleDownloadDailys,
+    handleListStationActive
 }
