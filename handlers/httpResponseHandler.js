@@ -229,6 +229,10 @@ async function handleUploadFile(res, req, action, token = false) {
                 await workbook.xlsx.load(part.data); 
                 const sheet = workbook.getWorksheet(1); 
 
+                // Extract values from specific cells (B1 and G1)
+                const cellValueB1 = sheet.getCell('B1').value;
+                const cellValueG1 = sheet.getCell('G2').value;
+
                 const expectedRow4 = [
                   "Unit", "HM/KM", "Qty", "Driver", "IN", "OUT", 
                   "Awal", "Akhir", "Shift", "Type"
@@ -249,7 +253,7 @@ async function handleUploadFile(res, req, action, token = false) {
                   }
                 });
               
-                headerData.push([cellValueB1, cellValueG]);
+                headerData.push([cellValueB1, cellValueG1]);
                 uploadedFiles.push(customFilename);
               
               } catch (error) {
