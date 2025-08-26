@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, formatDateTimeToDDMMYYYY_HHMMSS } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, formatDateTimeToDDMMYYYY_HHMMSS, formattedHHMMservice } = require('../../helpers/dateHelper');
 const { fetchUser } = require('../../helpers/httpHelper');
 const logger = require('../../helpers/pinoLog');
 const { getEquipment } = require('../../helpers/proto/master-data');
@@ -62,7 +62,7 @@ const insertBulkData = async(header, dataArray, userData) => {
     try {
         const today = new Date()
         let unitLimited = []
-        let lkfId, dateNow; 
+        let lkfId, dateNow;         
 
         for (item of header) {
             lkfId = item[0]
@@ -79,7 +79,6 @@ const insertBulkData = async(header, dataArray, userData) => {
                 "K": "Receipt KPC"
             };
             const typeTrx = typeMap[row[9]] || "Unknown";
-
             const fetchLastData = await db.query(QUERY_STRING.getLastDataByStation, [unit[0].unit_no, dateNow])
             const unitLast = fetchLastData.rows
 
