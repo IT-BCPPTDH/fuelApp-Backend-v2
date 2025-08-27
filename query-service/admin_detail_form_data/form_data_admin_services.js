@@ -1,5 +1,5 @@
 const db = require('../../database/helper');
-const { formatYYYYMMDD, formatDateTimeToDDMMYYYY_HHMMSS, formattedHHMMservice } = require('../../helpers/dateHelper');
+const { formatYYYYMMDD, formatDateTimeToDDMMYYYY_HHMMSS, formattedHHMMservice, formatInputYYYYMMDD } = require('../../helpers/dateHelper');
 const { fetchUser } = require('../../helpers/httpHelper');
 const logger = require('../../helpers/pinoLog');
 const { getEquipment } = require('../../helpers/proto/master-data');
@@ -61,86 +61,170 @@ const getTableData = async (params) => {
 const insertBulkData = async(header, dataArray, userData) => {
     try {
         const today = new Date()
-        let unitLimited = []
+        let unitLimited = {
+            successCount: 0,
+            quotaAffectedUnits: [],
+            unitQuotaInfo: [],
+            failedCount: 0,
+            failedData: []
+        }
         let lkfId, dateNow;         
 
         for (item of header) {
             lkfId = item[0]
-            dateNow = formatYYYYMMDD(item[1])
+            dateNow = formatInputYYYYMMDD(item[1])
         }
 
         for (const row of dataArray) {
-            const fethUnit = await getEquipment([row[0]])
-            const unit = JSON.parse(fethUnit.data)
-            const typeMap = {
-                "I": "Issued",
-                "T": "Transfer",
-                "R": "Receive",
-                "K": "Receipt KPC"
-            };
-            const typeTrx = typeMap[row[9]] || "Unknown";
-            const fetchLastData = await db.query(QUERY_STRING.getLastDataByStation, [unit[0].unit_no, dateNow])
-            const unitLast = fetchLastData.rows
-
-            const jmlFbr = (parseFloat(row[1]) - unitLast[0].hm_km) / Number(row[2])
-            let dt = Math.floor(Date.now() / 1000);
-            const users = await fetchUser()
-            const user = users.data.find((item) => item.JDE == row[3])
-
-            const dataJson = {
-                from_data_id: dt,
-                no_unit: unit[0].unit_no,
-                model_unit: unit[0].type,
-                owner: unit[0].owner,
-                date_trx: dateNow,
-                qty: row[2],
-                hm_km: row[1],
-                jde_operator: user.JDE,
-                name_operator: user.fullname ? user.fullname : "",
-                start: formattedHHMMservice(row[4]),
-                end: formattedHHMMservice(row[5]),
-                flow_start: row[6],
-                flow_end: row[7],
-                type: typeTrx,
-                fbr: jmlFbr,
-                lkf_id: lkfId,
-                created_at: today,
-                created_by: userData.JDE
-            };
-
-            const sanitizedColumns = Object.keys(dataJson).map(key => `"${key}"`);
-            const valuesPlaceholders = sanitizedColumns.map((_, idx) => `$${idx + 1}`).join(', ');
-
-            const createOperatorQuery = `
-              INSERT INTO form_data (${sanitizedColumns.join(', ')})
-              VALUES (${valuesPlaceholders})
-            `;
-
-            const values = Object.keys(dataJson).map(key => {
-              if (key === 'created_at' && dataJson[key] instanceof Date) {
-                return dataJson[key].toISOString();
-              }
-              if (key === 'start' || key === 'end') {
-                return dataJson[key].toString();
-              }
-              return dataJson[key];
-            });
-
-            const limitQuota = await db.query(QUERY_STRING.getQuota, [dataJson.no_unit])
-         
-            if(dataJson.no_unit.includes('LV') || dataJson.no_unit.includes('HLV')){
-                const totalActual = dataJson.qty + limitQuota.rows[0].used;
-                if(limitQuota.rows[0].quota > totalActual){
-                    const params = [dataJson.qty, dataJson.no_unit, dateNow];
-                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 and "date" = $3`;
-                    await db.query(updateQuotaQuery, params);
-                    await db.query(createOperatorQuery, values);
-                }else{
-                    unitLimited.push(dataJson.no_unit)
+            try {
+                const fethUnit = await getEquipment([row[0]])
+                const unit = JSON.parse(fethUnit.data)
+                const typeMap = {
+                    "I": "Issued",
+                    "T": "Transfer",
+                    "R": "Receive",
+                    "K": "Receipt KPC"
+                };
+                const typeTrx = typeMap[row[9]] || "Unknown";
+                
+                // Check if unit exists
+                if(unit.length === 0){
+                    unitLimited.failedCount++;
+                    unitLimited.failedData.push({
+                        no_unit: row[0],
+                        reason: "data unit tidak ada",
+                        type: typeMap[row[9]]
+                    });
+                    continue;
                 }
-            }else{
-                await db.query(createOperatorQuery, values);
+                
+                const fetchLastData = await db.query(QUERY_STRING.getLastDataByStation, [unit[0].unit_no, dateNow])
+                // Check if last data exists
+                if(fetchLastData.rowCount === 0){
+                    unitLimited.failedCount++;
+                    unitLimited.failedData.push({
+                        no_unit: unit[0].unit_no,
+                        reason: "tidak ada data sebelumnya"
+                    });
+                    continue;
+                }
+                
+                const unitLast = fetchLastData.rows
+                const lastQty = unitLast[0].qty == null ? 0 : unitLast[0].qty
+                const lastHmkm = unitLast[0].hm_km == null ? 0 : unitLast[0].hm_km
+                const jmlFbr = lastQty / (parseFloat(row[1]) - lastHmkm) 
+                let dt = Math.floor(Date.now() / 1000);
+                const users = await fetchUser()
+                const user = users.data.find((item) => item.JDE == row[3])
+                
+                // Check if user exists
+                if(!user){
+                    unitLimited.failedCount++;
+                    unitLimited.failedData.push({
+                        no_unit: unit[0].unit_no,
+                        reason: "data user tidak ada",
+                        jde: row[3]
+                    });
+                    continue;
+                }
+                
+                // Handle HHMM numeric format (e.g., 2016 -> "20:16")
+                const formatHHMMNumeric = (timeValue) => {
+                    if (typeof timeValue === 'number') {
+                        const timeStr = timeValue.toString().padStart(4, '0');
+                        const hours = timeStr.substring(0, 2);
+                        const minutes = timeStr.substring(2, 4);
+                        return `${hours}:${minutes}`;
+                    } else if (typeof timeValue === 'string') {
+                        const timeStr = timeValue.padStart(4, '0');
+                        const hours = timeStr.substring(0, 2);
+                        const minutes = timeStr.substring(2, 4);
+                        return `${hours}:${minutes}`;
+                    }
+                    return '00:00';
+                };
+                
+                const startTime = formatHHMMNumeric(row[4]);
+                const endTime = formatHHMMNumeric(row[5]);
+                
+                const values = [
+                    dt, // from_data_id
+                    unit[0].unit_no, // no_unit
+                    unit[0].type, // model_unit
+                    unit[0].owner, // owner
+                    dateNow, // date_trx - pass as string, let the database handle the conversion
+                    lastHmkm, // hm_last (not used in this context)
+                    row[1], // hm_km
+                    lastQty, // qty_last (not used in this context)
+                    row[2], // qty
+                    row[6], // flow_start
+                    row[7], // flow_end
+                    user.JDE, // jde_operator
+                    user.fullname ? user.fullname : "", // name_operator
+                    startTime, // start
+                    endTime, // end
+                    jmlFbr.toFixed(2), // fbr
+                    lkfId, // lkf_id
+                    null, // signature (not used in this context)
+                    typeTrx, // type
+                    null, // photo (not used in this context)
+                    today, // sync_time
+                    userData.JDE // created_by
+                ];
+                
+                 // Ambil data kuota berdasarkan unit baru
+                const currQuotaData = await db.query(QUERY_STRING.getExistingQuota, [unit[0].unit_no, dateNow]);
+                const quotaExists = currQuotaData.rowCount > 0;
+        
+                if (quotaExists) {
+                    // Add to unit quota info
+                    unitLimited.unitQuotaInfo.push({
+                        no_unit: unit[0].unit_no,
+                        used: currQuotaData.rows[0].used,
+                        quota: currQuotaData.rows[0].quota,
+                        additional: currQuotaData.rows[0].additional
+                    });
+                    
+                    let used = parseFloat(currQuotaData.rows[0].used);
+                    const limit = parseFloat(currQuotaData.rows[0].quota) + parseFloat(currQuotaData.rows[0].additional);
+                    const isNewIssued = typeTrx === 'Issued';
+                    
+                    // Update used quota if it's an issued type
+                    if (isNewIssued) {
+                        used += parseFloat(row[2]); // qty
+                        unitLimited.quotaAffectedUnits.push(unit[0].unit_no);
+                    }
+        
+                    if (used > limit) {
+                        unitLimited.failedCount++;
+                        unitLimited.failedData.push({
+                            no_unit: unit[0].unit_no,
+                            reason: "unit melebihi kapasitas",
+                            used: used,
+                            limit: limit
+                        });
+                        continue;
+                    }
+        
+                    const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
+                    await db.query(updateQuotaQuery, [used, unit[0].unit_no, dateNow]);
+                }
+
+                await db.query(QUERY_STRING.postFormData, values);
+                unitLimited.successCount++;
+                
+            } catch (rowError) {
+                // console.log(rowError)
+                logger.error(rowError)
+                unitLimited.failedCount++;
+                unitLimited.failedData.push({
+                    row_data: row,
+                    reason: "Error processing row",
+                    error: rowError.message
+                });
             }
+
+           
         }
         return unitLimited
     } catch (error) {
