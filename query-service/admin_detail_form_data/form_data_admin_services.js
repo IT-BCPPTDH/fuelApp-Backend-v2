@@ -129,16 +129,29 @@ const insertBulkData = async(header, dataArray, userData) => {
                 }
                 
                 // Handle HHMM numeric format (e.g., 2016 -> "20:16")
+                // Fix invalid time format: if hours is "24", convert to "00"
                 const formatHHMMNumeric = (timeValue) => {
                     if (typeof timeValue === 'number') {
                         const timeStr = timeValue.toString().padStart(4, '0');
-                        const hours = timeStr.substring(0, 2);
+                        let hours = timeStr.substring(0, 2);
                         const minutes = timeStr.substring(2, 4);
+                        
+                        // Fix invalid hour "24" to "00"
+                        if (hours === '24') {
+                            hours = '00';
+                        }
+                        
                         return `${hours}:${minutes}`;
                     } else if (typeof timeValue === 'string') {
                         const timeStr = timeValue.padStart(4, '0');
-                        const hours = timeStr.substring(0, 2);
+                        let hours = timeStr.substring(0, 2);
                         const minutes = timeStr.substring(2, 4);
+                        
+                        // Fix invalid hour "24" to "00"
+                        if (hours === '24') {
+                            hours = '00';
+                        }
+                        
                         return `${hours}:${minutes}`;
                     }
                     return '00:00';
@@ -159,8 +172,8 @@ const insertBulkData = async(header, dataArray, userData) => {
                     row[2], // qty
                     row[6], // flow_start
                     row[7], // flow_end
-                    user.JDE, // jde_operator
-                    user.fullname ? user.fullname : "", // name_operator
+                    user.JDE ? user.JDE : "", // jde_operator
+                    user.fullname ? user.fullname : "Tidak ada operator", // name_operator
                     startTime, // start
                     endTime, // end
                     jmlFbr.toFixed(2), // fbr
@@ -214,7 +227,7 @@ const insertBulkData = async(header, dataArray, userData) => {
                 unitLimited.successCount++;
                 
             } catch (rowError) {
-                // console.log(rowError)
+                console.log(rowError)
                 logger.error(rowError)
                 unitLimited.failedCount++;
                 unitLimited.failedData.push({
