@@ -116,7 +116,6 @@ const insertBulkData = async(header, dataArray, userData) => {
                 let dt = Math.floor(Date.now() / 1000);
                 const users = await fetchUser()
                 const user = users.data.find((item) => item.JDE == row[3])
-                
                 // Check if user exists
                 if(!user){
                     unitLimited.failedCount++;
