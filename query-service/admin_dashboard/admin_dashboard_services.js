@@ -236,7 +236,7 @@ const getTableDashboard = async (params) => {
         const listData = await processData(queryData.rows)
         const prevClosing = await db.query(QUERY_STRING.getClosing,[prevDateBefore, prevDate])
         const listPrev = await groupClosing(prevClosing.rows)
-        const target = ['TK1037', 'TK1036', 'TK1074', 'TK1073']
+        const target = ['TK1037', 'TK1036', 'TK1074', 'TK1073', 'T112']
         const listForm = mergeStations(getFormStations.rows, target)
         const difference = await calcDifferences(queryData.rows)
         const listDtoN = mergeNtoD(listData, listPrev)
