@@ -12,7 +12,7 @@ const getTotalStation = async (params) => {
         totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateBefore, dateNow, station])
         stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateBefore,dateNow, station])
         stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
-        if(station == 'TK1037' || station == 'TK1036'||station == 'TK1074' || station == 'TK1073'){
+        if(station == 'TK1037' || station == 'TK1036'||station == 'TK1074' || station == 'TK1073' || station == 'T112'){
             totalStation = await db.query(QUERY_STRING.getStationTK, [dateBefore, dateNow, `%${station}%`])
             stationShiftDay = await db.query(QUERY_STRING.getTKShiftDay, [dateBefore,dateNow, `%${station}%`])
             stationShiftNight = await db.query(QUERY_STRING.getTKShiftNigth, [dateBefore,dateNow, `%${station}%`])
@@ -68,7 +68,7 @@ const getTableStation = async (params) => {
         const station = params.station
         getDataStations =  await db.query(QUERY_STRING.getShiftStation, [station, dateBefore, dateNow])
         loginData = await db.query(QUERY_STRING.getLogStation, [station, dateBefore, dateNow])
-        if(station == 'TK1037' || station == 'TK1036'||station == 'TK1074' || station == 'TK1073'){
+        if(station == 'TK1037' || station == 'TK1036'||station == 'TK1074' || station == 'TK1073' || station == 'T112'){
             getDataStations =  await db.query(QUERY_STRING.getShiftStationTK, [`%${station}%`, dateBefore, dateNow])
             loginData = await db.query(QUERY_STRING.getLogStationTK, [`%${station}%`, dateBefore, dateNow])
         }
