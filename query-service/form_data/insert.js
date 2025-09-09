@@ -270,24 +270,34 @@ const editForm = async (updateFields) => {
     try {
         await db.query('BEGIN');
 
-        const dates = formatYYYYMMDD(updateFields.date_trx);
+        // Convert comma to period for numeric fields to ensure they fit float type
+        const numericFields = ['hm_last', 'hm_km', 'qty_last', 'qty', 'flow_start', 'flow_end', 'fbr'];
+        const fields = { ...updateFields };
+        
+        numericFields.forEach(field => {
+            if (fields[field] && typeof fields[field] === 'string' && fields[field].includes(',')) {
+                fields[field] = fields[field].replace(',', '.');
+            }
+        });
+
+        const dates = formatYYYYMMDD(fields.date_trx);
 
         // Ambil data kuota berdasarkan unit baru
-        const currQuotaData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.no_unit, dates]);
+        const currQuotaData = await db.query(QUERY_STRING.getExistingQuota, [fields.no_unit, dates]);
         const quotaExists = currQuotaData.rowCount > 0;
 
         // Ambil qty dan type sebelumnya
         const oldFormQuery = 'SELECT qty, type FROM form_data WHERE id = $1';
-        const oldForm = await db.query(oldFormQuery, [updateFields.id]);
+        const oldForm = await db.query(oldFormQuery, [fields.id]);
 
         const oldQty = parseFloat(oldForm.rows[0].qty);
         const oldType = oldForm.rows[0].type;
         const isOldIssued = oldType === 'Issued';
-        const isNewIssued = updateFields.type === 'Issued';
+        const isNewIssued = fields.type === 'Issued';
 
         // CASE 1: Jika unit berubah
-        if (updateFields.unitBefore && updateFields.unitBefore !== updateFields.no_unit) {
-            const oldQuotaData = await db.query(QUERY_STRING.getExistingQuota, [updateFields.unitBefore, dates]);
+        if (fields.unitBefore && fields.unitBefore !== fields.no_unit) {
+            const oldQuotaData = await db.query(QUERY_STRING.getExistingQuota, [fields.unitBefore, dates]);
             const oldQuotaExists = oldQuotaData.rowCount > 0;
             const newQuotaExists = currQuotaData.rowCount > 0;
 
@@ -296,14 +306,14 @@ const editForm = async (updateFields) => {
                 const usedOld = parseFloat(oldQuotaData.rows[0].used);
                 const totalOld = usedOld - oldQty;
                 const queryOld = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
-                await db.query(queryOld, [totalOld, updateFields.unitBefore, dates]);
+                await db.query(queryOld, [totalOld, fields.unitBefore, dates]);
             }
 
             // Tambah ke unit baru jika sekarang Issued
             if (newQuotaExists && isNewIssued) {
                 const usedNew = parseFloat(currQuotaData.rows[0].used);
                 const limitNew = parseFloat(currQuotaData.rows[0].quota) + parseFloat(currQuotaData.rows[0].additional);
-                const totalNew = usedNew + parseFloat(updateFields.qty);
+                const totalNew = usedNew + parseFloat(fields.qty);
 
                 if (totalNew > limitNew) {
                     await rollbackAndLog('Used kuota pada unit baru melebihi limit');
@@ -311,7 +321,7 @@ const editForm = async (updateFields) => {
                 }
 
                 const queryNew = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
-                await db.query(queryNew, [totalNew, updateFields.no_unit, dates]);
+                await db.query(queryNew, [totalNew, fields.no_unit, dates]);
             }
         }
 
@@ -323,9 +333,9 @@ const editForm = async (updateFields) => {
             if (isOldIssued && !isNewIssued) {
                 used -= oldQty;
             } else if (!isOldIssued && isNewIssued) {
-                used += parseFloat(updateFields.qty);
+                used += parseFloat(fields.qty);
             } else if (isOldIssued && isNewIssued) {
-                used = used - oldQty + parseFloat(updateFields.qty);
+                used = used - oldQty + parseFloat(fields.qty);
             }
 
             if (used > limit) {
@@ -334,26 +344,26 @@ const editForm = async (updateFields) => {
             }
 
             const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
-            await db.query(updateQuotaQuery, [used, updateFields.no_unit, dates]);
+            await db.query(updateQuotaQuery, [used, fields.no_unit, dates]);
         }
 
         // Update data ke form_data (exclude id, unitBefore, qtyBefore)
-        const fieldsToUpdate = Object.keys(updateFields).filter(
+        const fieldsToUpdate = Object.keys(fields).filter(
             field => field !== 'id' && field !== 'unitBefore' && field !== 'qtyBefore'
         );
 
         const setClauses = fieldsToUpdate.map((field, idx) => {
             const escapedField = field === 'end' ? `"${field}"` : field;
-            return `${escapedField} = $${idx + 1}`;
+            return `${escapedField} = ${idx + 1}`;
         }).join(', ');
 
-        const values = fieldsToUpdate.map(field => updateFields[field]);
-        values.push(updateFields.id); // for WHERE id = $n
+        const values = fieldsToUpdate.map(field => fields[field]);
+        values.push(fields.id); // for WHERE id = $n
 
-        const updateQuery = `UPDATE form_data SET ${setClauses} WHERE id = $${values.length}`;
+        const updateQuery = `UPDATE form_data SET ${setClauses} WHERE id = ${values.length}`;
         const result = await db.query(updateQuery, values);
 
-        // Ambil semua nilai dari updateFields
+        // Ambil semua nilai dari fields
         const {
             from_data_id,
             no_unit,
@@ -376,7 +386,7 @@ const editForm = async (updateFields) => {
             type,
             photo,
             updated_by
-        } = updateFields;
+        } = fields;
 
         await db.query(
             `INSERT INTO log_form_data (
