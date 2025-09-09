@@ -80,26 +80,37 @@ const calcDifferences = (data) => {
     return result;
 };
 
-const mergeStations = (data, targetPrefixes) => {
+const mergeStations = (data) => {
     const groupedData = {};
   
     data.forEach(item => {
-      const matchedPrefix = targetPrefixes.find(prefix => item.station.startsWith(prefix));
+      // Check if station has -1 or -2 prefix and extract the base station name
+      let baseStation = item.station;
+      let shouldMerge = false;
+      
+      if (item.station.includes('-1') || item.station.includes('-2')) {
+        // Extract the base station name (part before -1 or -2)
+        const parts = item.station.split('-');
+        if (parts.length >= 2 && (parts[1] === '1' || parts[1] === '2')) {
+          baseStation = parts[0];
+          shouldMerge = true;
+        }
+      }
   
-      if (matchedPrefix) {
-        if (!groupedData[matchedPrefix]) {
-          groupedData[matchedPrefix] = {
-            station: matchedPrefix,
+      if (shouldMerge) {
+        if (!groupedData[baseStation]) {
+          groupedData[baseStation] = {
+            station: baseStation,
             total_issued: 0,
             total_transfer: 0,
             total_receive: 0,
             total_receive_kpc: 0
           };
         }
-        groupedData[matchedPrefix].total_issued += item.total_issued;
-        groupedData[matchedPrefix].total_transfer += item.total_transfer;
-        groupedData[matchedPrefix].total_receive += item.total_receive;
-        groupedData[matchedPrefix].total_receive_kpc += item.total_receive_kpc;
+        groupedData[baseStation].total_issued += item.total_issued;
+        groupedData[baseStation].total_transfer += item.total_transfer;
+        groupedData[baseStation].total_receive += item.total_receive;
+        groupedData[baseStation].total_receive_kpc += item.total_receive_kpc;
       } else {
         groupedData[item.station] = { ...item };
       }
@@ -181,8 +192,7 @@ const getTotalDashboard = async (params) => {
         const listData = await processData(queryData.rows)
         const listPrev = await groupClosing(prevClosing.rows)
         const totalPrev = listPrev.reduce((sum, item) => sum + item.closing_dip, 0);
-        const target = ['TK1037', 'TK1036', 'TK1074', 'TK1073']
-        const listForm = mergeStations(getFormStations.rows, target)
+        const listForm = mergeStations(getFormStations.rows)
         const difference = await calcDifferences(queryData.rows)
         const listDtoN = mergeNtoD(listData, listPrev)
         const mergeData = mergeArray(listData, listForm, difference, listDtoN)
@@ -236,8 +246,7 @@ const getTableDashboard = async (params) => {
         const listData = await processData(queryData.rows)
         const prevClosing = await db.query(QUERY_STRING.getClosing,[prevDateBefore, prevDate])
         const listPrev = await groupClosing(prevClosing.rows)
-        const target = ['TK1037', 'TK1036', 'TK1074', 'TK1073', 'T112']
-        const listForm = mergeStations(getFormStations.rows, target)
+        const listForm = mergeStations(getFormStations.rows)
         const difference = await calcDifferences(queryData.rows)
         const listDtoN = mergeNtoD(listData, listPrev)
         const mergeData = mergeArray(listData, listForm, difference, listDtoN)
