@@ -306,7 +306,8 @@ const editForm = async (updateFields) => {
                 const totalNew = usedNew + parseFloat(updateFields.qty);
 
                 if (totalNew > limitNew) {
-                    return await rollbackAndLog('Used kuota pada unit baru melebihi limit');
+                    await rollbackAndLog('Used kuota pada unit baru melebihi limit');
+                    return {status : false, message: 'Used kuota pada unit baru melebihi limit', data: null}
                 }
 
                 const queryNew = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
@@ -328,7 +329,8 @@ const editForm = async (updateFields) => {
             }
 
             if (used > limit) {
-                return await rollbackAndLog('Perubahan qty melebihi limit kuota');
+                await rollbackAndLog('Perubahan qty melebihi limit kuota');
+                return {status : false, message: 'Perubahan qty melebihi limit kuota', data: null}
             }
 
             const updateQuotaQuery = `UPDATE quota_usage SET used = $1 WHERE "unit_no" = $2 AND "date" = $3`;
@@ -403,13 +405,13 @@ const editForm = async (updateFields) => {
         );
 
         await db.query('COMMIT');
-        return result.rowCount > 0;
+        return {status : true, message : 'Succes editing data!', data: result.rowCount > 0}
 
     } catch (error) {
         console.error(error);
         await db.query('ROLLBACK');
         logger.error(error);
-        return false;
+        return {status : false}
     }
 };
   
