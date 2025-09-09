@@ -354,13 +354,15 @@ const editForm = async (updateFields) => {
 
         const setClauses = fieldsToUpdate.map((field, idx) => {
             const escapedField = field === 'end' ? `"${field}"` : field;
-            return `${escapedField} = ${idx + 1}`;
+            return `${escapedField} = $${idx + 1}`;
         }).join(', ');
 
         const values = fieldsToUpdate.map(field => fields[field]);
         values.push(fields.id); // for WHERE id = $n
 
-        const updateQuery = `UPDATE form_data SET ${setClauses} WHERE id = ${values.length}`;
+        console.log(setClauses, values)
+
+        const updateQuery = `UPDATE form_data SET ${setClauses} WHERE id = $${values.length}`;
         const result = await db.query(updateQuery, values);
 
         // Ambil semua nilai dari fields
