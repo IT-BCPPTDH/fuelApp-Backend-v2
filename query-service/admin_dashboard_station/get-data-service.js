@@ -9,14 +9,10 @@ const getTotalStation = async (params) => {
         const dateNow = formatYYYYMMDD(params.tanggal)
         const dateBefore = formatDateOption(params.option, dateNow)
         const station = params.station
-        totalStation = await db.query(QUERY_STRING.getAllDataStation, [dateBefore, dateNow, station])
-        stationShiftDay = await db.query(QUERY_STRING.getStationShiftDay, [dateBefore,dateNow, station])
-        stationShiftNight = await db.query(QUERY_STRING.getStationShiftNigth, [dateBefore,dateNow, station])
-        if(station == 'TK1037' || station == 'TK1036'||station == 'TK1074' || station == 'TK1073' || station == 'T112'){
-            totalStation = await db.query(QUERY_STRING.getStationTK, [dateBefore, dateNow, `%${station}%`])
-            stationShiftDay = await db.query(QUERY_STRING.getTKShiftDay, [dateBefore,dateNow, `%${station}%`])
-            stationShiftNight = await db.query(QUERY_STRING.getTKShiftNigth, [dateBefore,dateNow, `%${station}%`])
-        }
+        // Use pattern matching for all stations to automatically include -1 and -2 variants
+        totalStation = await db.query(QUERY_STRING.getStationTK, [dateBefore, dateNow, `${station}%`])
+        stationShiftDay = await db.query(QUERY_STRING.getTKShiftDay, [dateBefore,dateNow, `${station}%`])
+        stationShiftNight = await db.query(QUERY_STRING.getTKShiftNigth, [dateBefore,dateNow, `${station}%`])
         const closedData = totalStation.rows[0].total_open + totalStation.rows[0].total_receive_kpc + totalStation.rows[0].total_receive - totalStation.rows[0].total_issued - totalStation.rows[0].total_transfer
         const variance = totalStation.rows[0].total_close - closedData
         const closedDataDay = stationShiftDay?.rows[0]?.total_open + stationShiftDay?.rows[0]?.total_receive_kpc + stationShiftDay?.rows[0]?.total_receive - stationShiftDay?.rows[0]?.total_issued - stationShiftDay?.rows[0]?.total_transfer
@@ -66,12 +62,9 @@ const getTableStation = async (params) => {
         const dateNow = formatYYYYMMDD(params.tanggal)
         const dateBefore = formatDateOption(params.option, dateNow)
         const station = params.station
-        getDataStations =  await db.query(QUERY_STRING.getShiftStation, [station, dateBefore, dateNow])
-        loginData = await db.query(QUERY_STRING.getLogStation, [station, dateBefore, dateNow])
-        if(station == 'TK1037' || station == 'TK1036'||station == 'TK1074' || station == 'TK1073' || station == 'T112'){
-            getDataStations =  await db.query(QUERY_STRING.getShiftStationTK, [`%${station}%`, dateBefore, dateNow])
-            loginData = await db.query(QUERY_STRING.getLogStationTK, [`%${station}%`, dateBefore, dateNow])
-        }
+        // Use pattern matching for all stations to automatically include -1 and -2 variants
+        getDataStations =  await db.query(QUERY_STRING.getShiftStationTK, [`${station}%`, dateBefore, dateNow])
+        loginData = await db.query(QUERY_STRING.getLogStationTK, [`${station}%`, dateBefore, dateNow])
         const mergedData = getDataStations.rows.map(itemA => {
             const matchingItemB = loginData.rows.find(itemB => itemB.lkf_id === itemA.lkf_id);
 

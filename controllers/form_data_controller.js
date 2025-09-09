@@ -35,19 +35,18 @@ async function operatorPostData(data) {
 
 async function adminUpdateData(data) {
     try{
-        
         let result = await editForm(data)
-        const newData = await db.query(QUERY_STRING.getTableFormData, [data.lkf_id])
-        if(result){
+        if(result.status == true){
+            const newData = await db.query(QUERY_STRING.getTableFormData, [data.lkf_id])
             return {
                 status: HTTP_STATUS.OK,
-                message: 'Data has been update!',
+                message: result.message,
                 data: newData
             };
         }else{
             return {
                 status: HTTP_STATUS.METHOD_NOT_ALLOWED,
-                message: 'Data not update',
+                message: result.message,
             };
         }
     }catch(err){
