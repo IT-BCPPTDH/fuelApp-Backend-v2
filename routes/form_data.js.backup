@@ -3,12 +3,13 @@ const { checkToken } = require('../helpers/redisTransaction');
 
 module.exports = (app) => {
     // operator
-console.log("🧭 routes/form_data.js loaded on port 9053");
     app.post('/api/operator/post-data',(res,req) => formDataHandler.handleOperatorPostData(res,req))
     app.get('/api/operator/get-data/:unitNo/:tanggal',(res,req) => formDataHandler.handleOperatorByUnit(res,req))
     app.post('/api/operator/bulk-insert',(res,req) => formDataHandler.handleOperatorBulkData(res,req))
     app.get('/api/operator/get-data-prev/:tanggal',(res,req) => formDataHandler.handleUnitPrevMonth(res,req))
     app.get('/api/operator/get-last-trx',(res,req) => formDataHandler.handleLastTrx(res,req))
+
+
     // admin
     app.put('/api/admin/update-data',(res,req) => formDataHandler.handleAdminUpdateData(res,req))
     app.put('/api/admin/delete-data/:id',(res,req) => formDataHandler.handleDeleteData(res,req))

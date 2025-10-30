@@ -83,19 +83,22 @@ async function getFormDataPrev(unit_no, tanggal) {
     }
 }
 
-async function bulkInsert(bulkData){
+async function bulkInsert1(bulkData){
     try{
+	console.log('Total data diterima:', bulkData.length);
         const dates = bulkData.map((itm) => itm.date_trx)
         const uniqueDates = [...new Set(dates)];
-        const existingData = await getAllByDate(uniqueDates)
-        const arrData = []
+   	console.log('Unique dates:', uniqueDates);
+	const existingData = await getAllByDate(uniqueDates)
+	console.log('Existing data count:', existingData.data.length);
+	const arrData = []
         for (let index = 0; index < bulkData.length; index++) {
             let sign = null
             let foto = null
             let element = bulkData[index];
-
-            const isExisting = existingData.data.some(item => item.from_data_id === element.from_data_id);
-            
+	console.log(`\n🔹 [${index + 1}/${bulkData.length}] Processing from_data_id: ${element.from_data_id}`);
+           const isExisting = existingData.data.some(item => item.from_data_id === element.from_data_id);
+     	 console.log('Existing?', isExisting);
             if(element.signature){
                 sign = base64ToImageSign(element.signature)
             }
@@ -108,16 +111,16 @@ async function bulkInsert(bulkData){
                 signature:sign,
                 photo:foto
             }
-
             if (!isExisting) {
+
+        console.log('Insert ke DB...');
               await insertToForm(element);
               arrData.push(element)
             }
         }
-    
         return {
           status: HTTP_STATUS.OK,
-          message: "Succesfully insert data!",
+          message: "Succesfully insert TES data!",
           rowsLength: arrData.length
         }
     }catch(error){
@@ -127,6 +130,65 @@ async function bulkInsert(bulkData){
           };
     }
 }
+
+async function bulkInsert(bulkData) {
+    console.log("🚀 Masuk ke bulkInsert, isi bulkData:", bulkData);
+    try {
+        console.log('🚀 bulkInsert called!');
+        console.log('Total data diterima:', bulkData.length);
+
+        const dates = bulkData.map(itm => itm.date_trx);
+        const uniqueDates = [...new Set(dates)];
+        console.log('📅 Unique dates:', uniqueDates);
+
+        const existingData = await getAllByDate(uniqueDates);
+        console.log('📦 Existing data count:', existingData.data.length);
+
+        const arrData = [];
+
+        for (let index = 0; index < bulkData.length; index++) {
+            let sign = null;
+            let foto = null;
+            let element = bulkData[index];
+
+            console.log(`\n🔹 [${index + 1}/${bulkData.length}] Processing from_data_id: ${element.from_data_id}`);
+            const isExisting = existingData.data.some(item => item.from_data_id === element.from_data_id);
+            console.log('   ↳ Existing?', isExisting);
+
+            if (element.signature) {
+                sign = base64ToImageSign(element.signature);
+            }
+            if (element.photo) {
+                foto = base64ToImageFlow(element.photo);
+            }
+
+            element = {
+                ...element,
+                signature: sign,
+                photo: foto
+            };
+
+            if (!isExisting) {
+                console.log('   ✅ Insert ke DB...');
+                await insertToForm(element);
+                arrData.push(element);
+            }
+        }
+        return {
+            status: HTTP_STATUS.OK,
+            message: "Succesfully insert TES data!",
+            rowsLength: arrData.length
+        };
+
+    } catch (error) {
+        console.error("❌ [bulkInsert] error:", error);
+        return {
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: `${STATUS_MESSAGE.ERR_GET} ${error}`,
+        };
+    }
+}
+
 
 async function getAllByDate(data) {
     try{

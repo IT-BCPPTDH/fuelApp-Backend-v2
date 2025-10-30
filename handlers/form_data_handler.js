@@ -13,8 +13,16 @@ async function handleAdminUpdateData(res, req) {
     await handleResponseJsonOperator(res, res, adminUpdateData, true)
 } 
 
+//async function handleOperatorBulkData(res, req) {
+    //console.log("Bulk data received:", res.body);
+  //  await handleResponseJsonOperator(res, req, bulkInsert, true )
+//}
+
 async function handleOperatorBulkData(res, req) {
-    await handleResponseJsonOperator(res, req, bulkInsert, true )
+    console.log("✅ handleOperatorBulkData called!");
+    const bulkData = req.body;
+    console.log("📥 Bulk data received:", bulkData);
+    await handleResponseJsonOperator(res, req, bulkInsert, true);
 }
 
 

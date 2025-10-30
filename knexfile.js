@@ -3,7 +3,7 @@ require('dotenv').config();
 const fs = require('fs');
 
 module.exports = {
-  client: 'cockroachdb',
+  client: 'pg',
   connection: {
     connectionString: process.env.COCKROACHDB_URL + "&application_name=docs_simplecrud_knex",
   },
