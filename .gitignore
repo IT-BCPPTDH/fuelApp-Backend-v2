@@ -136,4 +136,5 @@ download
 
 upload
 ./upload
-assetsactions-runner/
+assets
+actions-runner/
