@@ -1,4 +1,4 @@
-name: Deploy Node.js App (Self-hosted)
+name: Deploy BE Fuel App (Self-hosted)
 
 on:
   push:
