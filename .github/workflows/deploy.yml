@@ -29,7 +29,5 @@ jobs:
           script: |
             cd /data/development/fuelApp-Backend
             git pull origin main
-            npm install --production
-            npm run migrate:latest
             chmod +x restart.sh
             ./restart.sh
