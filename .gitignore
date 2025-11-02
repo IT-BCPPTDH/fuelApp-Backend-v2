@@ -137,3 +137,8 @@ download
 upload
 ./upload
 assets
+actions-runner/
+actions-runner/
+actions-runner/
+Dockerfile
+.github/
