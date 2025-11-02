@@ -84,6 +84,7 @@ const getTableStation = async (params) => {
                 logout_time: matchingItemB.logout_time ? formatDateTimeToDDMMYYYY_HHMMSS(matchingItemB.logout_time) : 'N/A'
               };
             }
+
             return {
                 ...itemA,
                 date: formattedDate,  
