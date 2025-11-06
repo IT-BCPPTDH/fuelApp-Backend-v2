@@ -46,7 +46,6 @@ async function updateLkfController(data) {
       updated_by,
     } = data;
 
-    // 🧹 Bersihkan data: ubah "" jadi null, ubah string angka jadi Number
     const parseValue = (val) => {
       if (val === "" || val === undefined || val === null) return null;
       const num = Number(val);
